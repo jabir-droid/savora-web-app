@@ -1,0 +1,1223 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Savora - Smart Wallet & AI Financial Advisor</title>
+    
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            dark: '#070F1E',
+                            card: '#0B192C',
+                            border: '#1E3E62',
+                            accent: '#F97316',
+                            hover: '#EA580C'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Plus Jakarta Sans', 'Inter', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <!-- FontAwesome & Google Fonts & Chart.js -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <?!= include('styles'); ?>
+</head>
+<body class="bg-[#070F1E] text-slate-100 min-h-screen font-sans antialiased selection:bg-orange-500 selection:text-white pb-20 md:pb-0">
+
+    <!-- ========================================== -->
+    <!-- 🔒 SECURITY PIN LOCK OVERLAY SCREEN -->
+    <!-- ========================================== -->
+    <div id="pinScreen" class="fixed inset-0 z-[200] bg-[#070F1E]/95 backdrop-blur-xl flex items-center justify-center p-4 transition-all duration-500 opacity-0 pointer-events-none">
+        <div class="max-w-xs w-full text-center space-y-6 bg-[#0B192C]/90 p-6 rounded-3xl border border-[#1E3E62] shadow-2xl animate-fadeIn">
+            <div class="w-16 h-16 bg-gradient-to-tr from-orange-500 to-amber-400 rounded-2xl flex items-center justify-center mx-auto shadow-lg shadow-orange-500/20">
+                <i class="fa-solid fa-shield-halved text-white text-2xl"></i>
+            </div>
+            <div>
+                <h3 class="text-xl font-bold text-white tracking-wide">SAVORA LOCK</h3>
+                <p id="pinInstructions" class="text-xs text-slate-400 mt-1" data-translate="pin_instructions">Masukkan Kode PIN Keamanan 4-Digit</p>
+            </div>
+            
+            <!-- Pin Dots -->
+            <div class="flex justify-center items-center gap-3 py-2">
+                <div class="w-4 h-4 rounded-full border-2 border-slate-600 transition-all duration-200 pin-dot"></div>
+                <div class="w-4 h-4 rounded-full border-2 border-slate-600 transition-all duration-200 pin-dot"></div>
+                <div class="w-4 h-4 rounded-full border-2 border-slate-600 transition-all duration-200 pin-dot"></div>
+                <div class="w-4 h-4 rounded-full border-2 border-slate-600 transition-all duration-200 pin-dot"></div>
+            </div>
+            <input type="password" id="newPinInput" class="hidden" maxlength="4" readonly>
+
+            <!-- Keypad Grid -->
+            <div class="grid grid-cols-3 gap-3">
+                <button type="button" onclick="pressPin('1')" class="keypad-btn py-3 text-lg font-semibold bg-[#1E3E62]/40 hover:bg-[#1E3E62] rounded-xl text-white transition-all duration-150 active:scale-95">1</button>
+                <button type="button" onclick="pressPin('2')" class="keypad-btn py-3 text-lg font-semibold bg-[#1E3E62]/40 hover:bg-[#1E3E62] rounded-xl text-white transition-all duration-150 active:scale-95">2</button>
+                <button type="button" onclick="pressPin('3')" class="keypad-btn py-3 text-lg font-semibold bg-[#1E3E62]/40 hover:bg-[#1E3E62] rounded-xl text-white transition-all duration-150 active:scale-95">3</button>
+                <button type="button" onclick="pressPin('4')" class="keypad-btn py-3 text-lg font-semibold bg-[#1E3E62]/40 hover:bg-[#1E3E62] rounded-xl text-white transition-all duration-150 active:scale-95">4</button>
+                <button type="button" onclick="pressPin('5')" class="keypad-btn py-3 text-lg font-semibold bg-[#1E3E62]/40 hover:bg-[#1E3E62] rounded-xl text-white transition-all duration-150 active:scale-95">5</button>
+                <button type="button" onclick="pressPin('6')" class="keypad-btn py-3 text-lg font-semibold bg-[#1E3E62]/40 hover:bg-[#1E3E62] rounded-xl text-white transition-all duration-150 active:scale-95">6</button>
+                <button type="button" onclick="pressPin('7')" class="keypad-btn py-3 text-lg font-semibold bg-[#1E3E62]/40 hover:bg-[#1E3E62] rounded-xl text-white transition-all duration-150 active:scale-95">7</button>
+                <button type="button" onclick="pressPin('8')" class="keypad-btn py-3 text-lg font-semibold bg-[#1E3E62]/40 hover:bg-[#1E3E62] rounded-xl text-white transition-all duration-150 active:scale-95">8</button>
+                <button type="button" onclick="pressPin('9')" class="keypad-btn py-3 text-lg font-semibold bg-[#1E3E62]/40 hover:bg-[#1E3E62] rounded-xl text-white transition-all duration-150 active:scale-95">9</button>
+                <button type="button" id="pinBtnClear" onclick="clearPin()" class="keypad-btn py-3 text-sm font-semibold bg-rose-500/20 hover:bg-rose-500/30 text-rose-400 rounded-xl transition-all duration-150 active:scale-95">C</button>
+                <button type="button" onclick="pressPin('0')" class="keypad-btn py-3 text-lg font-semibold bg-[#1E3E62]/40 hover:bg-[#1E3E62] rounded-xl text-white transition-all duration-150 active:scale-95">0</button>
+                <button type="button" id="pinBtnBackspace" onclick="deleteLastPin()" class="keypad-btn py-3 text-sm font-semibold bg-slate-700/40 hover:bg-slate-700 text-slate-300 rounded-xl transition-all duration-150 active:scale-95"><i class="fa-solid fa-backspace"></i></button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- 🔔 GLOBAL TOAST NOTIFICATION COMPONENT -->
+    <!-- ========================================== -->
+    <div id="toast" class="fixed top-4 right-4 z-[300] max-w-sm w-full shadow-2xl rounded-2xl border border-slate-700/80 bg-[#0B192C]/95 backdrop-blur-md p-4 transition-all duration-300 transform translate-y-[-150%] opacity-0 pointer-events-none flex items-start gap-3">
+        <div id="toastIcon" class="w-10 h-10 rounded-xl bg-orange-500/20 text-orange-400 flex items-center justify-center flex-shrink-0 text-lg">
+            <i class="fa-solid fa-bell"></i>
+        </div>
+        <div class="flex-1 min-w-0">
+            <h4 id="toastTitle" class="text-sm font-bold text-white">Notifikasi Savora</h4>
+            <p id="toastMsg" class="text-xs text-slate-300 mt-0.5 break-words">Pesan notifikasi sistem.</p>
+        </div>
+        <button onclick="hideToast()" class="text-slate-400 hover:text-white text-sm p-1"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- 🏛️ MAIN APP STRUCTURE WRAPPER -->
+    <!-- ========================================== -->
+    <div class="flex min-h-screen">
+
+        <!-- 1. DESKTOP SIDEBAR -->
+        <aside class="hidden md:flex flex-col w-64 bg-[#0B192C] border-r border-[#1E3E62]/60 fixed inset-y-0 left-0 z-40">
+            <!-- Brand Logo -->
+            <div class="p-6 border-b border-[#1E3E62]/40 flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-orange-500 to-amber-400 flex items-center justify-center text-white font-black text-xl shadow-lg shadow-orange-500/20">
+                        S
+                    </div>
+                    <div>
+                        <h1 class="font-extrabold text-lg text-white tracking-wide leading-none">SAVORA</h1>
+                        <span class="text-[10px] text-orange-400 font-semibold tracking-wider uppercase">Financial AI</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sync & Cloud Status Widget -->
+            <div id="syncStatusBox" class="mx-4 my-3 p-3 rounded-xl bg-[#070F1E]/60 border border-[#1E3E62]/40 flex items-center gap-3">
+                <span id="syncStatusDot" class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse flex-shrink-0"></span>
+                <div class="min-w-0 flex-1">
+                    <p id="syncStatus" class="text-xs font-semibold text-white truncate">Cloud Synchronized</p>
+                    <p id="syncStatusDesc" class="text-[10px] text-slate-400 truncate">Google Sheets Active</p>
+                </div>
+            </div>
+
+            <!-- Navigation Links -->
+            <nav class="flex-1 px-3 py-2 space-y-1 overflow-y-auto no-scrollbar">
+                <button data-tab="dashboard" class="tab-btn w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold text-slate-300 hover:text-white hover:bg-[#1E3E62]/40 transition-all">
+                    <i class="fa-solid fa-chart-pie text-base w-5 text-center text-slate-400"></i>
+                    <span data-translate="menu_dashboard">Beranda</span>
+                </button>
+                <button data-tab="transactions" class="tab-btn w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold text-slate-300 hover:text-white hover:bg-[#1E3E62]/40 transition-all">
+                    <i class="fa-solid fa-receipt text-base w-5 text-center text-slate-400"></i>
+                    <span data-translate="menu_transactions">Transaksi</span>
+                </button>
+                <button data-tab="savings" class="tab-btn w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold text-slate-300 hover:text-white hover:bg-[#1E3E62]/40 transition-all">
+                    <i class="fa-solid fa-piggy-bank text-base w-5 text-center text-slate-400"></i>
+                    <span data-translate="menu_savings">Tabungan</span>
+                </button>
+                <button data-tab="statistics" class="tab-btn w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold text-slate-300 hover:text-white hover:bg-[#1E3E62]/40 transition-all">
+                    <i class="fa-solid fa-chart-line text-base w-5 text-center text-slate-400"></i>
+                    <span data-translate="menu_statistics">Statistik</span>
+                </button>
+                <button data-tab="calendar" class="tab-btn w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold text-slate-300 hover:text-white hover:bg-[#1E3E62]/40 transition-all">
+                    <i class="fa-solid fa-calendar-days text-base w-5 text-center text-slate-400"></i>
+                    <span data-translate="menu_calendar">Kalender</span>
+                </button>
+                <button data-tab="categories" class="tab-btn w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold text-slate-300 hover:text-white hover:bg-[#1E3E62]/40 transition-all">
+                    <i class="fa-solid fa-tags text-base w-5 text-center text-slate-400"></i>
+                    <span data-translate="menu_categories">Kategori & Limit</span>
+                </button>
+                <button data-tab="ai_assistant" class="tab-btn w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold text-slate-300 hover:text-white hover:bg-[#1E3E62]/40 transition-all group">
+                    <div class="flex items-center gap-3">
+                        <i class="fa-solid fa-robot text-base w-5 text-center text-orange-400 group-hover:scale-110 transition-transform"></i>
+                        <span data-translate="menu_ai">Savora AI Chat</span>
+                    </div>
+                    <span class="px-1.5 py-0.5 text-[9px] font-bold bg-orange-500/20 text-orange-400 rounded-md border border-orange-500/30">AI</span>
+                </button>
+                <button data-tab="notifications" class="tab-btn w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold text-slate-300 hover:text-white hover:bg-[#1E3E62]/40 transition-all">
+                    <div class="flex items-center gap-3">
+                        <i class="fa-solid fa-bell text-base w-5 text-center text-slate-400"></i>
+                        <span data-translate="menu_notifications">Notifikasi</span>
+                    </div>
+                    <span id="desktopNotifBadge" class="hidden px-2 py-0.5 text-[10px] font-bold bg-rose-500 text-white rounded-full">0</span>
+                </button>
+                <button data-tab="settings" class="tab-btn w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold text-slate-300 hover:text-white hover:bg-[#1E3E62]/40 transition-all">
+                    <i class="fa-solid fa-gear text-base w-5 text-center text-slate-400"></i>
+                    <span data-translate="menu_settings">Pengaturan</span>
+                </button>
+                <button data-tab="help" class="tab-btn w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold text-slate-300 hover:text-white hover:bg-[#1E3E62]/40 transition-all">
+                    <i class="fa-solid fa-circle-question text-base w-5 text-center text-slate-400"></i>
+                    <span data-translate="menu_help">Pusat Bantuan</span>
+                </button>
+            </nav>
+
+            <!-- Sidebar Footer Quick CTA -->
+            <div class="p-4 border-t border-[#1E3E62]/40 space-y-3">
+                <button onclick="openQuickAddModal()" class="btn-cta-glow w-full py-2.5 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-bold text-xs rounded-xl shadow-lg shadow-orange-500/25 flex items-center justify-center gap-2 transition-all">
+                    <i class="fa-solid fa-plus"></i>
+                    <span data-translate="btn_quick_add">Catat Transaksi</span>
+                </button>
+                <div class="flex items-center justify-between text-[10px] text-slate-400 px-1">
+                    <span id="liveClock">00:00 WIB</span>
+                    <span id="langDesktopLabel" class="uppercase font-semibold text-slate-300">ID</span>
+                </div>
+            </div>
+        </aside>
+
+        <!-- 2. MOBILE MENU DRAWER OVERLAY -->
+        <div id="mobileMenuDrawer" class="md:hidden fixed inset-0 z-[100] bg-black/70 backdrop-blur-sm transition-opacity duration-300 opacity-0 pointer-events-none">
+            <div id="drawerContent" class="w-4/5 max-w-xs h-full bg-[#0B192C] border-r border-[#1E3E62] p-5 flex flex-col justify-between transform -translate-x-full transition-transform duration-300">
+                <div class="space-y-6">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-2.5">
+                            <div class="w-8 h-8 rounded-lg bg-orange-500 flex items-center justify-center text-white font-bold text-sm">S</div>
+                            <span class="font-extrabold text-white text-base">SAVORA</span>
+                        </div>
+                        <button onclick="closeMobileMenu()" class="text-slate-400 hover:text-white p-1 text-lg"><i class="fa-solid fa-xmark"></i></button>
+                    </div>
+
+                    <div class="space-y-1">
+                        <button data-tab="dashboard" onclick="closeMobileMenu()" class="mobile-tab-btn tab-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold text-slate-300 hover:bg-[#1E3E62]/40">
+                            <i class="fa-solid fa-chart-pie w-5 text-orange-400"></i><span data-translate="menu_dashboard">Beranda</span>
+                        </button>
+                        <button data-tab="transactions" onclick="closeMobileMenu()" class="mobile-tab-btn tab-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold text-slate-300 hover:bg-[#1E3E62]/40">
+                            <i class="fa-solid fa-receipt w-5 text-emerald-400"></i><span data-translate="menu_transactions">Transaksi</span>
+                        </button>
+                        <button data-tab="savings" onclick="closeMobileMenu()" class="mobile-tab-btn tab-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold text-slate-300 hover:bg-[#1E3E62]/40">
+                            <i class="fa-solid fa-piggy-bank w-5 text-cyan-400"></i><span data-translate="menu_savings">Tabungan</span>
+                        </button>
+                        <button data-tab="statistics" onclick="closeMobileMenu()" class="mobile-tab-btn tab-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold text-slate-300 hover:bg-[#1E3E62]/40">
+                            <i class="fa-solid fa-chart-line w-5 text-purple-400"></i><span data-translate="menu_statistics">Statistik</span>
+                        </button>
+                        <button data-tab="calendar" onclick="closeMobileMenu()" class="mobile-tab-btn tab-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold text-slate-300 hover:bg-[#1E3E62]/40">
+                            <i class="fa-solid fa-calendar-days w-5 text-amber-400"></i><span data-translate="menu_calendar">Kalender</span>
+                        </button>
+                        <button data-tab="categories" onclick="closeMobileMenu()" class="mobile-tab-btn tab-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold text-slate-300 hover:bg-[#1E3E62]/40">
+                            <i class="fa-solid fa-tags w-5 text-rose-400"></i><span data-translate="menu_categories">Kategori & Limit</span>
+                        </button>
+                        <button data-tab="ai_assistant" onclick="closeMobileMenu()" class="mobile-tab-btn tab-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold text-slate-300 hover:bg-[#1E3E62]/40">
+                            <i class="fa-solid fa-robot w-5 text-orange-400"></i><span data-translate="menu_ai">Savora AI Chat</span>
+                        </button>
+                        <button data-tab="notifications" onclick="closeMobileMenu()" class="mobile-tab-btn tab-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold text-slate-300 hover:bg-[#1E3E62]/40">
+                            <i class="fa-solid fa-bell w-5 text-sky-400"></i><span data-translate="menu_notifications">Notifikasi</span>
+                        </button>
+                        <button data-tab="settings" onclick="closeMobileMenu()" class="mobile-tab-btn tab-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold text-slate-300 hover:bg-[#1E3E62]/40">
+                            <i class="fa-solid fa-gear w-5 text-slate-400"></i><span data-translate="menu_settings">Pengaturan</span>
+                        </button>
+                        <button data-tab="help" onclick="closeMobileMenu()" class="mobile-tab-btn tab-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold text-slate-300 hover:bg-[#1E3E62]/40">
+                            <i class="fa-solid fa-circle-question w-5 text-teal-400"></i><span data-translate="menu_help">Pusat Bantuan</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="pt-4 border-t border-[#1E3E62]/40">
+                    <button onclick="openQuickAddModal(); closeMobileMenu();" class="w-full py-2.5 bg-orange-500 text-white font-bold text-xs rounded-xl shadow-lg flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-plus"></i> <span data-translate="btn_quick_add">Catat Transaksi</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 3. MOBILE BOTTOM NAVIGATION BAR -->
+        <div class="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-[#0B192C]/95 backdrop-blur-md border-t border-[#1E3E62]/60 px-4 py-2 flex items-center justify-around">
+            <button data-tab="dashboard" class="tab-btn flex flex-col items-center gap-1 text-[10px] font-semibold text-slate-400 hover:text-white">
+                <i class="fa-solid fa-chart-pie text-base"></i><span data-translate="menu_dashboard">Beranda</span>
+            </button>
+            <button data-tab="transactions" class="tab-btn flex flex-col items-center gap-1 text-[10px] font-semibold text-slate-400 hover:text-white">
+                <i class="fa-solid fa-receipt text-base"></i><span data-translate="menu_transactions">Transaksi</span>
+            </button>
+            <button onclick="openQuickAddModal()" class="w-11 h-11 rounded-full bg-gradient-to-tr from-orange-500 to-amber-400 text-white flex items-center justify-center text-lg shadow-lg shadow-orange-500/30 active:scale-90 transition-transform -translate-y-3 border-4 border-[#070F1E]">
+                <i class="fa-solid fa-plus"></i>
+            </button>
+            <button data-tab="savings" class="tab-btn flex flex-col items-center gap-1 text-[10px] font-semibold text-slate-400 hover:text-white">
+                <i class="fa-solid fa-piggy-bank text-base"></i><span data-translate="menu_savings">Tabungan</span>
+            </button>
+            <button data-tab="ai_assistant" class="tab-btn flex flex-col items-center gap-1 text-[10px] font-semibold text-slate-400 hover:text-white">
+                <i class="fa-solid fa-robot text-base text-orange-400"></i><span>AI Chat</span>
+            </button>
+        </div>
+
+        <!-- 4. MAIN CONTENT VIEW AREA -->
+        <main class="flex-1 md:ml-64 p-4 md:p-8 space-y-6 min-w-0">
+
+            <!-- Global Header Bar -->
+            <header class="flex items-center justify-between pb-4 border-b border-[#1E3E62]/40">
+                <div class="flex items-center gap-3">
+                    <button onclick="openMobileMenu()" class="md:hidden w-9 h-9 rounded-xl bg-[#0B192C] border border-[#1E3E62] flex items-center justify-center text-slate-300"><i class="fa-solid fa-bars text-sm"></i></button>
+                    <div>
+                        <h2 id="pageTitleHeader" class="text-lg md:text-2xl font-extrabold text-white tracking-wide">Selamat Datang di Savora!</h2>
+                        <p id="pageDescHeader" class="text-xs text-slate-400 hidden sm:block">Pantau dan kelola aset masa depan Anda secara instan.</p>
+                    </div>
+                </div>
+
+                <!-- Right Header Actions -->
+                <div class="flex items-center gap-3">
+                    <span id="liveClockMobile" class="md:hidden text-xs text-slate-400 font-semibold">00:00</span>
+                    <button id="langIndicator" onclick="applyLanguage(currentLanguage === 'id' ? 'en' : 'id')" class="px-3 py-1.5 rounded-xl bg-[#0B192C] border border-[#1E3E62] text-xs font-bold text-slate-300 hover:text-white hover:border-orange-500/50 transition-all flex items-center gap-1.5">
+                        <i class="fa-solid fa-globe text-orange-400"></i> <span class="uppercase">ID</span>
+                    </button>
+                    <button data-tab="notifications" class="tab-btn relative w-9 h-9 rounded-xl bg-[#0B192C] border border-[#1E3E62] flex items-center justify-center text-slate-300 hover:text-white">
+                        <i class="fa-solid fa-bell text-sm"></i>
+                        <span id="mobileNotifBadge" class="hidden absolute -top-1 -right-1 w-4 h-4 bg-rose-500 text-white rounded-full text-[9px] font-bold flex items-center justify-center">0</span>
+                        <span id="unreadNotifCountBadge" class="hidden">0</span>
+                    </button>
+                </div>
+            </header>
+
+            <!-- ========================================================== -->
+            <!-- 📌 TAB VIEW 1: DASHBOARD -->
+            <!-- ========================================================== -->
+            <section id="tab-dashboard" class="tab-content space-y-6">
+                
+                <!-- Overdraft Alert Banner (Dynamic) -->
+                <div id="overdraftAlertBanner" class="hidden p-4 rounded-2xl bg-rose-500/10 border border-rose-500/30 animate-border-glow-pulse flex items-start justify-between gap-3">
+                    <div class="flex items-start gap-3">
+                        <i class="fa-solid fa-triangle-exclamation text-rose-400 text-xl flex-shrink-0 mt-0.5"></i>
+                        <div>
+                            <h4 class="text-sm font-bold text-rose-400">Peringatan Overbudget Anggaran!</h4>
+                            <p class="text-xs text-slate-300 mt-0.5">Beberapa kategori telah melebihi batas bulanan Anda.</p>
+                        </div>
+                    </div>
+                    <button onclick="document.getElementById('overdraftAlertBanner').classList.add('hidden')" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+                </div>
+
+                <!-- 4 Top Cards Grid -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <!-- Total Balance Card -->
+                    <div class="p-5 rounded-2xl bg-gradient-to-br from-[#0B192C] to-[#162B47] border border-[#1E3E62] relative overflow-hidden shadow-xl">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-semibold text-slate-400" data-translate="card_total_balance">Total Dana Savora</span>
+                            <button onclick="toggleBalanceVisibility()" class="text-slate-400 hover:text-white text-sm"><i id="balanceEyeIcon" class="fa-solid fa-eye"></i></button>
+                        </div>
+                        <h3 id="dashTotalBalance" class="text-2xl font-black text-white mt-2 tracking-tight">Rp 0</h3>
+                        <div class="mt-3 flex items-center justify-between text-[11px] text-slate-400">
+                            <span>Aset Aktif Cloud</span>
+                            <span id="formCurrencyIndicator" class="text-orange-400 font-semibold">IDR (Rp)</span>
+                        </div>
+                    </div>
+
+                    <!-- Total Income Card -->
+                    <div class="p-5 rounded-2xl bg-[#0B192C] border border-[#1E3E62] shadow-lg">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-semibold text-slate-400" data-translate="card_total_income">Pemasukan</span>
+                            <div class="w-7 h-7 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-xs"><i class="fa-solid fa-[#070F1E] fa-arrow-down-left"></i></div>
+                        </div>
+                        <h3 id="dashTotalIncome" class="text-xl font-bold text-emerald-400 mt-2">Rp 0</h3>
+                        <p class="text-[11px] text-slate-400 mt-2">Bulan Ini</p>
+                    </div>
+
+                    <!-- Total Expense Card -->
+                    <div class="p-5 rounded-2xl bg-[#0B192C] border border-[#1E3E62] shadow-lg">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-semibold text-slate-400" data-translate="card_total_expense">Pengeluaran</span>
+                            <div class="w-7 h-7 rounded-lg bg-rose-500/20 text-rose-400 flex items-center justify-center text-xs"><i class="fa-solid fa-arrow-up-right"></i></div>
+                        </div>
+                        <h3 id="dashTotalExpense" class="text-xl font-bold text-rose-400 mt-2">Rp 0</h3>
+                        <p class="text-[11px] text-slate-400 mt-2">Bulan Ini</p>
+                    </div>
+
+                    <!-- Manage Accounts Quick Slider -->
+                    <div class="p-5 rounded-2xl bg-[#0B192C] border border-[#1E3E62] shadow-lg flex flex-col justify-between">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-semibold text-slate-400" data-translate="lbl_manage_accounts">Kelola Akun</span>
+                            <button onclick="openManageAccountsModal()" class="text-xs font-bold text-orange-400 hover:underline"><i class="fa-solid fa-gear"></i></button>
+                        </div>
+                        <div id="accountsSliderContainer" class="flex gap-2 overflow-x-auto py-2 no-scrollbar">
+                            <!-- Injected dynamically -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Dashboard Content 2 Columns -->
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <!-- Recent Activity List (2 Cols) -->
+                    <div class="lg:col-span-2 p-5 rounded-2xl bg-[#0B192C] border border-[#1E3E62] space-y-4">
+                        <div class="flex items-center justify-between border-b border-[#1E3E62]/40 pb-3">
+                            <div>
+                                <h3 class="text-base font-bold text-white" data-translate="dash_recent_tx">Transaksi Terakhir</h3>
+                                <p class="text-xs text-slate-400" data-translate="lbl_recent_activity">Aktivitas keuangan terbaru Anda</p>
+                            </div>
+                            <button data-tab="transactions" class="tab-btn text-xs font-bold text-orange-400 hover:underline" data-translate="btn_view_all">Lihat Semua</button>
+                        </div>
+                        <div id="dashTransactionsList" class="space-y-3">
+                            <!-- Injected dynamically -->
+                        </div>
+                    </div>
+
+                    <!-- Budget & Savings Widget (1 Col) -->
+                    <div class="space-y-6">
+                        <!-- Budget Limit Widget -->
+                        <div class="p-5 rounded-2xl bg-[#0B192C] border border-[#1E3E62] space-y-3">
+                            <div class="flex items-center justify-between border-b border-[#1E3E62]/40 pb-2">
+                                <h4 class="text-xs font-bold text-white uppercase tracking-wider" data-translate="dash_budget_limit">Kontrol Anggaran</h4>
+                                <button data-tab="categories" class="tab-btn text-xs text-orange-400 hover:underline"><i class="fa-solid fa-pen-to-square"></i></button>
+                            </div>
+                            <div id="dashBudgetWidget" class="space-y-3">
+                                <!-- Injected dynamically -->
+                            </div>
+                        </div>
+
+                        <!-- Savings Goals Progress Pills -->
+                        <div class="p-5 rounded-2xl bg-[#0B192C] border border-[#1E3E62] space-y-3">
+                            <div class="flex items-center justify-between border-b border-[#1E3E62]/40 pb-2">
+                                <h4 class="text-xs font-bold text-white uppercase tracking-wider" data-translate="dash_saving_target">Target Tabungan</h4>
+                                <button data-tab="savings" class="tab-btn text-xs text-orange-400 hover:underline"><i class="fa-solid fa-arrow-right"></i></button>
+                            </div>
+                            <div id="savingsPillsContainer" class="space-y-3">
+                                <!-- Injected dynamically -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </section>
+
+            <!-- ========================================================== -->
+            <!-- 📌 TAB VIEW 2: TRANSACTIONS -->
+            <!-- ========================================================== -->
+            <section id="tab-transactions" class="tab-content hidden space-y-6">
+                <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 p-4 rounded-2xl bg-[#0B192C] border border-[#1E3E62]">
+                    <div class="flex-1 grid grid-cols-1 sm:grid-cols-4 gap-3">
+                        <input type="text" id="txSearch" onkeyup="renderTransactions()" placeholder="Cari Deskripsi..." class="px-3.5 py-2 rounded-xl bg-[#070F1E] border border-[#1E3E62] text-xs text-white placeholder-slate-500 focus:outline-none focus:border-orange-500">
+                        
+                        <select id="txFilterType" onchange="renderTransactions()" class="px-3.5 py-2 rounded-xl bg-[#070F1E] border border-[#1E3E62] text-xs text-slate-300 focus:outline-none focus:border-orange-500">
+                            <option value="Semua" data-translate="opt_all_types">Semua Tipe</option>
+                            <option value="Income" data-translate="opt_income">Pemasukan</option>
+                            <option value="Expense" data-translate="opt_expense">Pengeluaran</option>
+                            <option value="Savings" data-translate="opt_savings">Tabungan</option>
+                            <option value="Transfer" data-translate="opt_transfer">Transfer Kas</option>
+                        </select>
+
+                        <select id="txFilterCategory" onchange="renderTransactions()" class="px-3.5 py-2 rounded-xl bg-[#070F1E] border border-[#1E3E62] text-xs text-slate-300 focus:outline-none focus:border-orange-500">
+                            <option value="Semua" data-translate="opt_all_categories">Semua Kategori</option>
+                        </select>
+
+                        <select id="txSort" onchange="renderTransactions()" class="px-3.5 py-2 rounded-xl bg-[#070F1E] border border-[#1E3E62] text-xs text-slate-300 focus:outline-none focus:border-orange-500">
+                            <option value="newest" data-translate="opt_newest">Terbaru</option>
+                            <option value="oldest" data-translate="opt_oldest">Terlama</option>
+                            <option value="highest" data-translate="opt_highest">Jumlah Tertinggi</option>
+                            <option value="lowest" data-translate="opt_lowest">Jumlah Terendah</option>
+                        </select>
+                    </div>
+
+                    <button onclick="exportToCSV()" class="px-4 py-2 rounded-xl bg-[#1E3E62]/60 hover:bg-[#1E3E62] text-xs font-bold text-white flex items-center justify-center gap-2 border border-[#1E3E62]">
+                        <i class="fa-solid fa-file-csv text-emerald-400"></i> <span data-translate="btn_export_csv">Ekspor CSV</span>
+                    </button>
+                </div>
+
+                <!-- Transactions Table -->
+                <div class="rounded-2xl bg-[#0B192C] border border-[#1E3E62] overflow-hidden shadow-xl">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="bg-[#070F1E]/80 border-b border-[#1E3E62] text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                                    <th class="py-3.5 px-4" data-translate="th_date">Tanggal</th>
+                                    <th class="py-3.5 px-4" data-translate="th_type">Tipe</th>
+                                    <th class="py-3.5 px-4" data-translate="th_category">Kategori</th>
+                                    <th class="py-3.5 px-4" data-translate="th_description">Deskripsi</th>
+                                    <th class="py-3.5 px-4 text-right" data-translate="th_amount">Jumlah</th>
+                                    <th class="py-3.5 px-4 text-center" data-translate="th_actions">Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody id="txTableBody" class="divide-y divide-[#1E3E62]/40 text-xs">
+                                <!-- Injected dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                    <div id="txLoadingRow" class="hidden p-6 text-center text-slate-400 text-xs"><i class="fa-solid fa-spinner fa-spin text-orange-400 text-xl"></i> Memuat data...</div>
+                    <div id="txEmptyState" class="hidden p-8 text-center text-slate-400 text-xs">Belum ada transaksi tercatat.</div>
+                </div>
+
+                <!-- Pagination Button -->
+                <div class="text-center pt-2">
+                    <button onclick="loadMoreTransactions()" class="px-6 py-2.5 rounded-xl bg-[#0B192C] hover:bg-[#1E3E62] border border-[#1E3E62] text-xs font-bold text-slate-300">
+                        Muat Lebih Banyak Transaksi
+                    </button>
+                </div>
+            </section>
+
+            <!-- ========================================================== -->
+            <!-- 📌 TAB VIEW 3: SAVINGS -->
+            <!-- ========================================================== -->
+            <section id="tab-savings" class="tab-content hidden space-y-6">
+                <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                    <div>
+                        <h3 class="text-lg font-bold text-white" data-translate="saving_list_title">Wadah Tabungan Savora</h3>
+                        <p class="text-xs text-slate-400">Rencanakan target masa depan secara terstruktur.</p>
+                    </div>
+                    <button onclick="openAddSavingsGoalModal()" class="px-4 py-2.5 rounded-xl bg-orange-500 hover:bg-orange-600 text-xs font-bold text-white shadow-lg flex items-center gap-2">
+                        <i class="fa-solid fa-plus"></i> <span data-translate="saving_add_title">Buat Rencana Tabungan</span>
+                    </button>
+                </div>
+
+                <!-- Savings Filter Pills -->
+                <div class="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar">
+                    <button onclick="changeSavingsFilter('Semua')" class="px-4 py-1.5 rounded-xl text-xs font-bold bg-orange-500 text-white shadow">Semua</button>
+                    <button onclick="changeSavingsFilter('Aktif')" class="px-4 py-1.5 rounded-xl text-xs font-bold bg-[#0B192C] text-slate-400 hover:text-white border border-[#1E3E62]">Aktif</button>
+                    <button onclick="changeSavingsFilter('Tercapai')" class="px-4 py-1.5 rounded-xl text-xs font-bold bg-[#0B192C] text-slate-400 hover:text-white border border-[#1E3E62]">Tercapai</button>
+                </div>
+
+                <!-- Savings Goals Grid -->
+                <div id="savingsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                    <!-- Injected dynamically -->
+                </div>
+            </section>
+
+            <!-- ========================================================== -->
+            <!-- 📌 TAB VIEW 4: STATISTICS -->
+            <!-- ========================================================== -->
+            <section id="tab-statistics" class="tab-content hidden space-y-6">
+                <!-- Sub Tab Nav -->
+                <div class="flex items-center gap-2 p-1.5 rounded-2xl bg-[#0B192C] border border-[#1E3E62] max-w-md">
+                    <button onclick="switchStatsSubTab('cashflow')" class="stats-sub-tab flex-1 py-2 rounded-xl text-xs font-bold bg-orange-500 text-white text-center">Aliran Kas</button>
+                    <button onclick="switchStatsSubTab('breakdown')" class="stats-sub-tab flex-1 py-2 rounded-xl text-xs font-bold text-slate-400 hover:text-white text-center">Pengeluaran</button>
+                    <button onclick="switchStatsSubTab('assets')" class="stats-sub-tab flex-1 py-2 rounded-xl text-xs font-bold text-slate-400 hover:text-white text-center">Aset Rekening</button>
+                </div>
+
+                <!-- Views Container -->
+                <div id="statsChartContainer" class="stats-view p-5 rounded-2xl bg-[#0B192C] border border-[#1E3E62] space-y-4">
+                    <h3 class="text-sm font-bold text-white" data-translate="stats_chart_title">Statistik Aliran Dana</h3>
+                    <div class="h-64 sm:h-80 w-full relative">
+                        <canvas id="statsChart"></canvas>
+                    </div>
+                </div>
+
+                <div id="statisticsBreakdownList" class="stats-view hidden p-5 rounded-2xl bg-[#0B192C] border border-[#1E3E62] space-y-3">
+                    <h3 class="text-sm font-bold text-white" data-translate="stats_breakdown_title">Porsi Pengeluaran</h3>
+                    <div class="space-y-3">
+                        <!-- Injected dynamically -->
+                    </div>
+                </div>
+
+                <div id="statisticsAssetsList" class="stats-view hidden p-5 rounded-2xl bg-[#0B192C] border border-[#1E3E62] space-y-3">
+                    <h3 class="text-sm font-bold text-white">Distribusi Saldo Rekening</h3>
+                    <div class="space-y-3">
+                        <!-- Injected dynamically -->
+                    </div>
+                </div>
+            </section>
+
+            <!-- ========================================================== -->
+            <!-- 📌 TAB VIEW 5: CALENDAR PLANNER -->
+            <!-- ========================================================== -->
+            <section id="tab-calendar" class="tab-content hidden space-y-6">
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <!-- Calendar Grid (2 Cols) -->
+                    <div class="lg:col-span-2 p-5 rounded-2xl bg-[#0B192C] border border-[#1E3E62] space-y-4">
+                        <div class="flex items-center justify-between">
+                            <h3 id="calendarMonthLabel" class="text-base font-bold text-white">Juni 2026</h3>
+                            <div class="flex items-center gap-2">
+                                <button onclick="changeCalendarMonth(-1)" class="w-8 h-8 rounded-xl bg-[#070F1E] border border-[#1E3E62] text-slate-300 hover:text-white"><i class="fa-solid fa-chevron-left"></i></button>
+                                <button onclick="changeCalendarMonth(1)" class="w-8 h-8 rounded-xl bg-[#070F1E] border border-[#1E3E62] text-slate-300 hover:text-white"><i class="fa-solid fa-chevron-right"></i></button>
+                            </div>
+                        </div>
+
+                        <!-- Grid -->
+                        <div id="calendarGrid" class="grid grid-cols-7 gap-1.5 text-center text-xs">
+                            <!-- Injected dynamically -->
+                        </div>
+                    </div>
+
+                    <!-- Day Detail Panel (1 Col) -->
+                    <div class="p-5 rounded-2xl bg-[#0B192C] border border-[#1E3E62] space-y-5">
+                        <div>
+                            <h4 id="calDetailDateLabel" class="text-sm font-bold text-orange-400">15 Juni 2026</h4>
+                            <p class="text-xs text-slate-400">Rencana & Catatan Harian</p>
+                        </div>
+
+                        <!-- Stats -->
+                        <div class="grid grid-cols-3 gap-2 text-center text-xs">
+                            <div class="p-2 rounded-xl bg-[#070F1E] border border-[#1E3E62]">
+                                <span class="text-[10px] text-slate-400">Masuk</span>
+                                <p id="calStatsIncome" class="font-bold text-emerald-400 mt-0.5">0</p>
+                            </div>
+                            <div class="p-2 rounded-xl bg-[#070F1E] border border-[#1E3E62]">
+                                <span class="text-[10px] text-slate-400">Keluar</span>
+                                <p id="calStatsExpense" class="font-bold text-rose-400 mt-0.5">0</p>
+                            </div>
+                            <div class="p-2 rounded-xl bg-[#070F1E] border border-[#1E3E62]">
+                                <span class="text-[10px] text-slate-400">Bersih</span>
+                                <p id="calStatsNet" class="font-bold text-white mt-0.5">0</p>
+                            </div>
+                        </div>
+
+                        <!-- Limit Belanja Harian -->
+                        <div class="space-y-2 pt-2 border-t border-[#1E3E62]/40">
+                            <div class="flex items-center justify-between text-xs">
+                                <span id="calDailyLimitLabel" class="font-bold text-white">Limit Belanja Harian</span>
+                                <span id="calDailyLimitSpent" class="text-slate-400">0 / 0</span>
+                            </div>
+                            <div class="w-full h-2 rounded-full bg-[#070F1E] overflow-hidden">
+                                <div id="calDailyLimitProgress" class="h-full bg-orange-500 rounded-full transition-all duration-300 w-0"></div>
+                            </div>
+                            <p id="calDailyLimitWarning" class="hidden text-[10px] text-rose-400 font-semibold"></p>
+                            <input type="number" id="calDailyLimitInput" onchange="saveCalendarEventField(selectedCalendarDate, 'limitBelanja', this.value)" placeholder="Set Limit Belanja Harian (Rp)" class="w-full px-3 py-1.5 rounded-xl bg-[#070F1E] border border-[#1E3E62] text-xs text-white">
+                        </div>
+
+                        <!-- Journal Notes -->
+                        <div class="space-y-2 pt-2 border-t border-[#1E3E62]/40">
+                            <label class="text-xs font-bold text-slate-300">Jurnal / Catatan Hari Ini</label>
+                            <textarea id="calDailyJournal" onchange="saveCalendarEventField(selectedCalendarDate, 'journalText', this.value)" rows="3" placeholder="Tuliskan peristiwa penting atau pengingat tagihan..." class="w-full p-2.5 rounded-xl bg-[#070F1E] border border-[#1E3E62] text-xs text-white focus:outline-none focus:border-orange-500"></textarea>
+                        </div>
+
+                        <!-- Reminders Checklist -->
+                        <div class="space-y-2 pt-2 border-t border-[#1E3E62]/40">
+                            <div class="flex items-center justify-between text-xs">
+                                <span class="font-bold text-slate-300">Checklist Agenda</span>
+                                <span id="calReminderBadge" class="px-2 py-0.5 rounded-md bg-orange-500/20 text-orange-400 text-[10px] font-bold">0 Pending</span>
+                            </div>
+                            <div class="flex gap-2">
+                                <input type="text" id="calReminderInput" placeholder="Tambah agenda baru..." class="flex-1 px-3 py-1.5 rounded-xl bg-[#070F1E] border border-[#1E3E62] text-xs text-white">
+                                <button onclick="addCalendarReminder()" class="px-3 py-1.5 rounded-xl bg-orange-500 text-white font-bold text-xs"><i class="fa-solid fa-plus"></i></button>
+                            </div>
+                            <div id="calRemindersList" class="space-y-1.5 max-h-32 overflow-y-auto no-scrollbar">
+                                <!-- Injected dynamically -->
+                            </div>
+                        </div>
+
+                        <!-- Day Tx List -->
+                        <div class="space-y-2 pt-2 border-t border-[#1E3E62]/40">
+                            <span class="text-xs font-bold text-slate-300">Transaksi Pada Tanggal Ini</span>
+                            <div id="calDetailTxList" class="space-y-2 max-h-36 overflow-y-auto no-scrollbar text-xs">
+                                <!-- Injected dynamically -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ========================================================== -->
+            <!-- 📌 TAB VIEW 6: CATEGORIES & LIMITS -->
+            <!-- ========================================================== -->
+            <section id="tab-categories" class="tab-content hidden space-y-6">
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <!-- Add Category Form (1 Col) -->
+                    <div class="p-5 rounded-2xl bg-[#0B192C] border border-[#1E3E62] space-y-4">
+                        <h3 class="text-base font-bold text-white" data-translate="cat_add_title">Tambah Kategori Baru</h3>
+                        <form id="categoryForm" onsubmit="handleCategoryFormSubmit(event)" class="space-y-4">
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-300 mb-1" data-translate="lbl_cat_name">Nama Kategori</label>
+                                <input type="text" id="catName" required placeholder="Contoh: Belanja Bulanan" class="w-full px-3.5 py-2 rounded-xl bg-[#070F1E] border border-[#1E3E62] text-xs text-white focus:border-orange-500">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-300 mb-1" data-translate="lbl_cat_type">Tipe Kategori</label>
+                                <select id="catType" class="w-full px-3.5 py-2 rounded-xl bg-[#070F1E] border border-[#1E3E62] text-xs text-slate-300">
+                                    <option value="Expense" data-translate="opt_expense">Pengeluaran</option>
+                                    <option value="Income" data-translate="opt_income">Pemasukan</option>
+                                    <option value="Savings" data-translate="opt_savings">Tabungan</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-300 mb-1" data-translate="lbl_cat_limit">Batas Anggaran Bulanan (Rp)</label>
+                                <input type="number" id="catLimit" placeholder="Contoh: 1500000" class="w-full px-3.5 py-2 rounded-xl bg-[#070F1E] border border-[#1E3E62] text-xs text-white focus:border-orange-500">
+                            </div>
+                            <button type="submit" class="w-full py-2.5 rounded-xl bg-orange-500 hover:bg-orange-600 text-white font-bold text-xs shadow-lg" data-translate="btn_save_cat">Simpan Kategori</button>
+                        </form>
+                    </div>
+
+                    <!-- Categories Table (2 Cols) -->
+                    <div class="lg:col-span-2 p-5 rounded-2xl bg-[#0B192C] border border-[#1E3E62] space-y-4">
+                        <h3 class="text-base font-bold text-white" data-translate="cat_list_title">Daftar Kategori & Kontrol Limit</h3>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left border-collapse">
+                                <thead>
+                                    <tr class="bg-[#070F1E]/80 border-b border-[#1E3E62] text-[11px] font-bold text-slate-400 uppercase">
+                                        <th class="py-3 px-4" data-translate="th_cat_name">Nama Kategori</th>
+                                        <th class="py-3 px-4" data-translate="th_cat_type">Tipe</th>
+                                        <th class="py-3 px-4" data-translate="th_cat_limit">Limit Anggaran</th>
+                                        <th class="py-3 px-4 text-center" data-translate="th_actions">Aksi</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="categoriesTableBody" class="divide-y divide-[#1E3E62]/40 text-xs">
+                                    <!-- Injected dynamically -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ========================================================== -->
+            <!-- 📌 TAB VIEW 7: AI ASSISTANT -->
+            <!-- ========================================================== -->
+            <section id="tab-ai_assistant" class="tab-content hidden space-y-4">
+                <!-- AI Controls Header -->
+                <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 p-4 rounded-2xl bg-[#0B192C] border border-[#1E3E62]">
+                    <div class="flex items-center gap-2">
+                        <button id="btnAiModeConsult" onclick="setAiMode('consult')" class="px-4 py-2 rounded-xl text-xs font-bold bg-orange-500 text-white">Mode Konsultasi</button>
+                        <button id="btnAiModeCatat" onclick="setAiMode('catat')" class="px-4 py-2 rounded-xl text-xs font-bold bg-[#070F1E] text-slate-400 border border-[#1E3E62]">Mode Catat Instan</button>
+                    </div>
+                    <button onclick="openReceiptScanner()" class="px-4 py-2 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-500 text-white text-xs font-bold flex items-center justify-center gap-2 shadow">
+                        <i class="fa-solid fa-camera"></i> Scan Struk Belanja (OCR)
+                    </button>
+                </div>
+
+                <!-- Suggestions Swiper -->
+                <div id="aiSuggestionsSwiper" class="flex gap-2 overflow-x-auto pb-1 no-scrollbar text-xs">
+                    <!-- Injected dynamically -->
+                </div>
+
+                <!-- Chat Window -->
+                <div id="aiChatWindow" class="h-96 rounded-2xl bg-[#0B192C] border border-[#1E3E62] p-4 overflow-y-auto space-y-3">
+                    <!-- Injected dynamically -->
+                </div>
+
+                <!-- Chat Input Controls -->
+                <div class="flex items-center gap-2 p-2 rounded-2xl bg-[#0B192C] border border-[#1E3E62]">
+                    <input type="file" id="nativeCameraInput" accept="image/*" capture="environment" onchange="handleReceiptCapture(event)" class="hidden">
+                    <button onclick="document.getElementById('nativeCameraInput').click()" class="w-10 h-10 rounded-xl bg-[#070F1E] border border-[#1E3E62] text-slate-300 hover:text-white flex items-center justify-center"><i class="fa-solid fa-paperclip"></i></button>
+                    <input type="text" id="aiInput" onkeypress="if(event.key === 'Enter') sendAiMessage()" placeholder="Tanyakan saran analisis keuangan atau ketik 'makan 25rb'..." class="flex-1 px-3 py-2 rounded-xl bg-[#070F1E] border border-[#1E3E62] text-xs text-white focus:outline-none focus:border-orange-500">
+                    <button id="aiMicBtn" onclick="toggleVoiceRecognition()" class="w-10 h-10 rounded-xl bg-[#070F1E] border border-[#1E3E62] text-slate-300 hover:text-orange-400 flex items-center justify-center"><i class="fa-solid fa-microphone"></i></button>
+                    <button onclick="sendAiMessage()" class="w-10 h-10 rounded-xl bg-orange-500 hover:bg-orange-600 text-white flex items-center justify-center shadow-lg"><i class="fa-solid fa-paper-plane"></i></button>
+                </div>
+            </section>
+
+            <!-- ========================================================== -->
+            <!-- 📌 TAB VIEW 8: NOTIFICATIONS -->
+            <!-- ========================================================== -->
+            <section id="tab-notifications" class="tab-content hidden space-y-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h3 class="text-base font-bold text-white" data-translate="notif_history_title">Riwayat Notifikasi Finansial</h3>
+                        <p class="text-xs text-slate-400" data-translate="notif_history_desc">Peringatan keamanan dan anggaran.</p>
+                    </div>
+                    <button id="btnClearHistory" onclick="clearNotificationHistory()" class="px-4 py-2 rounded-xl bg-rose-500/20 text-rose-400 hover:bg-rose-500/30 text-xs font-bold border border-rose-500/30" data-translate="btn_clear_history">Hapus Riwayat</button>
+                </div>
+
+                <!-- Preferences Form -->
+                <div class="p-5 rounded-2xl bg-[#0B192C] border border-[#1E3E62] space-y-4">
+                    <h4 class="text-xs font-bold text-white uppercase tracking-wider" data-translate="notif_settings_title">Konfigurasi Pengingat</h4>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+                        <div class="flex items-center justify-between p-3 rounded-xl bg-[#070F1E] border border-[#1E3E62]">
+                            <div>
+                                <p class="font-bold text-white" data-translate="lbl_pref_overdraft">Peringatan Overbudget</p>
+                                <p class="text-[10px] text-slate-400" data-translate="desc_pref_overdraft">Batas anggaran kategori</p>
+                            </div>
+                            <input type="checkbox" id="prefOverdraftToggle" onchange="saveNotificationPreferences()" class="w-4 h-4 accent-orange-500">
+                        </div>
+
+                        <div class="flex items-center justify-between p-3 rounded-xl bg-[#070F1E] border border-[#1E3E62]">
+                            <div>
+                                <p class="font-bold text-white" data-translate="lbl_pref_critical">Peringatan Saldo Kritis</p>
+                                <p class="text-[10px] text-slate-400" data-translate="desc_pref_critical">Saldo rekening utama menipis</p>
+                            </div>
+                            <input type="checkbox" id="prefCriticalToggle" onchange="saveNotificationPreferences()" class="w-4 h-4 accent-orange-500">
+                        </div>
+
+                        <div class="p-3 rounded-xl bg-[#070F1E] border border-[#1E3E62] space-y-1">
+                            <label class="font-bold text-white" data-translate="lbl_pref_threshold">Batas Minimum Saldo (Rp)</label>
+                            <input type="number" id="prefCriticalThreshold" onchange="saveNotificationPreferences()" placeholder="100000" class="w-full px-3 py-1.5 rounded-lg bg-[#0B192C] border border-[#1E3E62] text-xs text-white">
+                        </div>
+
+                        <div class="flex items-center justify-between p-3 rounded-xl bg-[#070F1E] border border-[#1E3E62]">
+                            <div>
+                                <p class="font-bold text-white" data-translate="lbl_pref_checklist">Checklist Tagihan</p>
+                                <p class="text-[10px] text-slate-400" data-translate="desc_pref_checklist">Agenda pending harian</p>
+                            </div>
+                            <input type="checkbox" id="prefChecklistToggle" onchange="saveNotificationPreferences()" class="w-4 h-4 accent-orange-500">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Notifications List -->
+                <div id="notifListContainer" class="space-y-3">
+                    <!-- Injected dynamically -->
+                </div>
+                <div id="notifHistoryContainer" class="space-y-3">
+                    <!-- Injected dynamically -->
+                </div>
+            </section>
+
+            <!-- ========================================================== -->
+            <!-- 📌 TAB VIEW 9: SETTINGS -->
+            <!-- ========================================================== -->
+            <section id="tab-settings" class="tab-content hidden space-y-6">
+                <div class="p-5 rounded-2xl bg-[#0B192C] border border-[#1E3E62] space-y-5">
+                    <h3 class="text-base font-bold text-white" data-translate="settings_title">Pengaturan Savora</h3>
+                    
+                    <div class="space-y-4 divide-y divide-[#1E3E62]/40 text-xs">
+                        <div class="pt-3 flex items-center justify-between">
+                            <div>
+                                <p class="font-bold text-white" data-translate="settings_currency">Format Mata Uang</p>
+                                <p class="text-slate-400 text-[11px]" data-translate="settings_currency_desc">Pilih IDR (Rp) atau USD ($)</p>
+                            </div>
+                            <select id="settingsCurrency" onchange="changeCurrencySetting(this.value)" class="px-3 py-1.5 rounded-xl bg-[#070F1E] border border-[#1E3E62] text-white">
+                                <option value="IDR">IDR (Rp)</option>
+                                <option value="USD">USD ($)</option>
+                            </select>
+                        </div>
+
+                        <div class="pt-3 flex items-center justify-between">
+                            <div>
+                                <p class="font-bold text-white">Akun Pembayaran Default</p>
+                                <p class="text-slate-400 text-[11px]">Akun otomatis saat mencatat transaksi</p>
+                            </div>
+                            <select id="settingsDefaultAccount" onchange="changeDefaultAccountSetting(this.value)" class="px-3 py-1.5 rounded-xl bg-[#070F1E] border border-[#1E3E62] text-white">
+                                <!-- Injected dynamically -->
+                            </select>
+                        </div>
+
+                        <div class="pt-3 flex items-center justify-between">
+                            <div>
+                                <p class="font-bold text-white" data-translate="settings_pin_lock">Kunci Aplikasi PIN</p>
+                                <p class="text-slate-400 text-[11px]" data-translate="settings_pin_desc">Memerlukan PIN 4 digit saat dibuka</p>
+                            </div>
+                            <input type="checkbox" id="settingsPinToggle" onchange="togglePinSecurity(this.checked)" class="w-4 h-4 accent-orange-500">
+                        </div>
+
+                        <div class="pt-3 flex items-center justify-between">
+                            <div>
+                                <p class="font-bold text-white">Respon Getar (Haptic)</p>
+                                <p class="text-slate-400 text-[11px]">Umpan balik getaran saat tombol diketik</p>
+                            </div>
+                            <input type="checkbox" id="settingsHapticToggle" onchange="localStorage.setItem('savora_haptic', this.checked)" class="w-4 h-4 accent-orange-500">
+                        </div>
+
+                        <div class="pt-3 flex items-center justify-between">
+                            <div>
+                                <p class="font-bold text-white">Simulasi Cerdas OCR Struk</p>
+                                <p class="text-slate-400 text-[11px]">Menggunakan OCR offline jika API Cloud habis</p>
+                            </div>
+                            <input type="checkbox" id="settingsOcrSimToggle" onchange="localStorage.setItem('savora_ocr_sim', this.checked)" class="w-4 h-4 accent-orange-500">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Actions & Reset -->
+                <div class="p-5 rounded-2xl bg-[#0B192C] border border-[#1E3E62] space-y-4">
+                    <h4 class="text-xs font-bold text-white uppercase tracking-wider">Pemeliharaan System</h4>
+                    <div class="flex flex-wrap gap-3">
+                        <button id="btnClearCache" onclick="clearAllCache()" class="px-4 py-2.5 rounded-xl bg-[#1E3E62]/60 hover:bg-[#1E3E62] text-xs font-bold text-white border border-[#1E3E62]">
+                            Bersihkan Cache Sistem
+                        </button>
+                        <button id="btnTestConnection" onclick="testConnection()" class="px-4 py-2.5 rounded-xl bg-[#1E3E62]/60 hover:bg-[#1E3E62] text-xs font-bold text-white border border-[#1E3E62]">
+                            Uji Koneksi Cloud
+                        </button>
+                        <button onclick="confirmResetDatabase()" class="px-4 py-2.5 rounded-xl bg-rose-500/20 hover:bg-rose-500/30 text-rose-400 text-xs font-bold border border-rose-500/30">
+                            Reset Total Database Ke Awal
+                        </button>
+                    </div>
+                    <p id="connectionTestStatus" class="text-xs font-semibold text-slate-400"></p>
+                </div>
+            </section>
+
+            <!-- ========================================================== -->
+            <!-- 📌 TAB VIEW 10: HELP & SUPPORT -->
+            <!-- ========================================================== -->
+            <section id="tab-help" class="tab-content hidden space-y-6">
+                <!-- FAQ Accordion -->
+                <div class="p-5 rounded-2xl bg-[#0B192C] border border-[#1E3E62] space-y-4">
+                    <h3 class="text-base font-bold text-white" data-translate="help_faq_title">FAQ (Tanya Jawab)</h3>
+                    <div class="space-y-3 text-xs">
+                        <div class="p-3 rounded-xl bg-[#070F1E] border border-[#1E3E62] space-y-1">
+                            <h4 class="font-bold text-orange-400" data-translate="help_faq_q1">Apakah data saya aman di Savora?</h4>
+                            <p class="text-slate-300" data-translate="help_faq_a1">Sangat aman! Seluruh data tersimpan di Cloud Google Sheets pribadi Anda.</p>
+                        </div>
+                        <div class="p-3 rounded-xl bg-[#070F1E] border border-[#1E3E62] space-y-1">
+                            <h4 class="font-bold text-orange-400" data-translate="help_faq_q2">Bagaimana jika lupa PIN keamanan?</h4>
+                            <p class="text-slate-300" data-translate="help_faq_a2">Kode default adalah 1234. Anda dapat membersihkan cache browser jika terkunci.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tutorial Card -->
+                <div id="helpTutorialCard" class="hidden p-5 rounded-2xl bg-[#0B192C] border border-[#1E3E62] space-y-3">
+                    <div class="flex items-center gap-3">
+                        <div id="helpTutorialIcon" class="w-10 h-10 rounded-xl bg-orange-500/20 text-orange-400 flex items-center justify-center text-lg"><i class="fa-solid fa-graduation-cap"></i></div>
+                        <h4 id="helpTutorialTitle" class="text-sm font-bold text-white">Panduan Penggunaan</h4>
+                    </div>
+                    <p id="helpTutorialContent" class="text-xs text-slate-300"></p>
+                    <div id="helpTutorialCtaContainer"></div>
+                </div>
+
+                <!-- Support Ticket Center -->
+                <div class="p-5 rounded-2xl bg-[#0B192C] border border-[#1E3E62] space-y-4">
+                    <div class="flex items-center justify-between border-b border-[#1E3E62]/40 pb-3">
+                        <div>
+                            <h3 id="supportPanelTitle" class="text-base font-bold text-white">Pusat Tiket Bantuan</h3>
+                            <p id="supportPanelDesc" class="text-xs text-slate-400">Kirim keluhan atau lacak status aduan Anda.</p>
+                        </div>
+                        <button id="btnToggleSupportMode" onclick="toggleSupportPanelMode()" class="px-3 py-1.5 rounded-xl bg-[#1E3E62]/60 text-xs font-bold text-white border border-[#1E3E62]">Lacak Tiket</button>
+                    </div>
+
+                    <!-- Form Panel -->
+                    <form id="supportFormPanel" onsubmit="handleSupportSubmit(event)" class="space-y-4">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-300 mb-1" data-translate="lbl_full_name">Nama Lengkap</label>
+                                <input type="text" id="supportFullName" required placeholder="Contoh: Budi Prasetyo" class="w-full px-3.5 py-2 rounded-xl bg-[#070F1E] border border-[#1E3E62] text-xs text-white">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-300 mb-1">Email Client</label>
+                                <input type="email" id="supportEmail" required placeholder="budi@gmail.com" class="w-full px-3.5 py-2 rounded-xl bg-[#070F1E] border border-[#1E3E62] text-xs text-white">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-300 mb-1" data-translate="lbl_problem_desc">Deskripsi Kendala</label>
+                            <textarea id="supportProblemDesc" rows="4" required placeholder="Jelaskan pertanyaan atau masalah Anda..." class="w-full p-3 rounded-xl bg-[#070F1E] border border-[#1E3E62] text-xs text-white focus:outline-none focus:border-orange-500"></textarea>
+                        </div>
+                        <button type="submit" id="btnSendSupportTicket" class="w-full py-2.5 rounded-xl bg-orange-500 hover:bg-orange-600 text-white font-bold text-xs shadow-lg" data-translate="btn_send_support">Kirim Tiket Bantuan</button>
+                    </form>
+
+                    <!-- Track Panel -->
+                    <div id="supportTrackPanel" class="hidden space-y-4">
+                        <div class="flex gap-2">
+                            <input type="email" id="supportTrackEmailInput" placeholder="Masukkan email terdaftar..." class="flex-1 px-3.5 py-2 rounded-xl bg-[#070F1E] border border-[#1E3E62] text-xs text-white">
+                            <button onclick="handleTrackTickets()" class="px-4 py-2 rounded-xl bg-orange-500 text-white text-xs font-bold">Cari Tiket</button>
+                        </div>
+                        <div id="supportTrackResults" class="space-y-3">
+                            <!-- Injected dynamically -->
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+        </main>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- 📦 MODALS COLLECTION SECTION -->
+    <!-- ========================================== -->
+
+    <!-- 1. Quick Add Transaction Modal -->
+    <div id="quickAddModal" class="fixed inset-0 z-[150] bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 transition-all duration-300 opacity-0 pointer-events-none">
+        <div id="quickAddCard" class="max-w-md w-full bg-[#0B192C] border border-[#1E3E62] rounded-3xl p-6 shadow-2xl space-y-5 transform scale-95 transition-all">
+            <div class="flex items-center justify-between border-b border-[#1E3E62]/40 pb-3">
+                <h3 class="text-base font-bold text-white" data-translate="modal_add_title">Catat Transaksi Baru</h3>
+                <button onclick="closeQuickAddModal()" class="text-slate-400 hover:text-white p-1 text-lg"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+
+            <form id="txForm" onsubmit="handleTransactionSubmit(event)" class="space-y-4">
+                <!-- Type Select Buttons -->
+                <div>
+                    <label class="block text-xs font-semibold text-slate-300 mb-1.5" data-translate="lbl_tx_type">Tipe Transaksi</label>
+                    <div class="grid grid-cols-4 gap-1.5 p-1 rounded-xl bg-[#070F1E] border border-[#1E3E62]">
+                        <button type="button" onclick="setFormType('Income')" class="type-sel-btn py-1.5 rounded-lg text-xs font-bold text-slate-400 hover:text-white">Pemasukan</button>
+                        <button type="button" onclick="setFormType('Expense')" class="type-sel-btn py-1.5 rounded-lg text-xs font-bold bg-orange-500 text-white">Pengeluaran</button>
+                        <button type="button" onclick="setFormType('Savings')" class="type-sel-btn py-1.5 rounded-lg text-xs font-bold text-slate-400 hover:text-white">Tabungan</button>
+                        <button type="button" onclick="setFormType('Transfer')" class="type-sel-btn py-1.5 rounded-lg text-xs font-bold text-slate-400 hover:text-white">Transfer</button>
+                    </div>
+                </div>
+
+                <!-- Nominal Input -->
+                <div>
+                    <label class="block text-xs font-semibold text-slate-300 mb-1" data-translate="lbl_tx_amount">Nominal Rp</label>
+                    <input type="number" id="txAmount" required placeholder="0" class="w-full px-4 py-2.5 rounded-xl bg-[#070F1E] border border-[#1E3E62] text-lg font-bold text-white focus:outline-none focus:border-orange-500">
+                </div>
+
+                <!-- Category Select -->
+                <div id="formCategoryContainer">
+                    <label class="block text-xs font-semibold text-slate-300 mb-1" data-translate="lbl_tx_category">Pilih Kategori</label>
+                    <select id="txCategory" class="w-full px-3.5 py-2 rounded-xl bg-[#070F1E] border border-[#1E3E62] text-xs text-slate-300 focus:outline-none focus:border-orange-500">
+                        <!-- Injected dynamically -->
+                    </select>
+                </div>
+
+                <!-- Savings Goal Source (When Savings Type) -->
+                <div id="savingsGoalSourceContainer" class="hidden">
+                    <label class="block text-xs font-semibold text-slate-300 mb-1">Target Tabungan Tujuan</label>
+                    <select id="txSavingsGoalSource" class="w-full px-3.5 py-2 rounded-xl bg-[#070F1E] border border-[#1E3E62] text-xs text-slate-300">
+                        <!-- Injected dynamically -->
+                    </select>
+                </div>
+
+                <!-- Description Input -->
+                <div>
+                    <label class="block text-xs font-semibold text-slate-300 mb-1" data-translate="lbl_tx_desc">Deskripsi</label>
+                    <input type="text" id="txDesc" placeholder="Contoh: Makan Siang" class="w-full px-3.5 py-2 rounded-xl bg-[#070F1E] border border-[#1E3E62] text-xs text-white focus:outline-none focus:border-orange-500">
+                </div>
+
+                <!-- Source Account -->
+                <div>
+                    <label class="block text-xs font-semibold text-slate-300 mb-1" data-translate="lbl_tx_account">Sumber Akun</label>
+                    <select id="txAccount" onchange="onTxAccountChange(this.value)" class="w-full px-3.5 py-2 rounded-xl bg-[#070F1E] border border-[#1E3E62] text-xs text-slate-300 focus:outline-none focus:border-orange-500">
+                        <!-- Injected dynamically -->
+                    </select>
+                </div>
+
+                <!-- Destination Account (Transfer Only) -->
+                <div id="transferDestinationContainer" class="hidden">
+                    <label class="block text-xs font-semibold text-slate-300 mb-1" data-translate="lbl_tx_to_account">Transfer Ke</label>
+                    <select id="txTransferTo" class="w-full px-3.5 py-2 rounded-xl bg-[#070F1E] border border-[#1E3E62] text-xs text-slate-300 focus:outline-none focus:border-orange-500">
+                        <!-- Injected dynamically -->
+                    </select>
+                </div>
+
+                <button type="submit" class="w-full py-3 rounded-xl bg-orange-500 hover:bg-orange-600 text-white font-bold text-xs shadow-lg shadow-orange-500/25" data-translate="btn_save_tx">Simpan Transaksi</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- 2. Add Savings Goal Modal -->
+    <div id="addSavingsGoalModal" class="fixed inset-0 z-[150] bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 transition-all duration-300 opacity-0 pointer-events-none">
+        <div id="addSavingsGoalCard" class="max-w-md w-full bg-[#0B192C] border border-[#1E3E62] rounded-3xl p-6 shadow-2xl space-y-4 transform scale-95 transition-all max-h-[90vh] overflow-y-auto no-scrollbar">
+            <div class="flex items-center justify-between border-b border-[#1E3E62]/40 pb-3">
+                <h3 class="text-base font-bold text-white" data-translate="saving_add_title">Buat Rencana Tabungan</h3>
+                <button onclick="closeAddSavingsGoalModal()" class="text-slate-400 hover:text-white p-1 text-lg"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+
+            <form id="savingsGoalForm" onsubmit="handleSavingsGoalSubmit(event)" class="space-y-3.5">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-300 mb-1" data-translate="lbl_saving_name">Nama Impian</label>
+                    <input type="text" id="addSvName" required placeholder="Contoh: DP Rumah" class="w-full px-3.5 py-2 rounded-xl bg-[#070F1E] border border-[#1E3E62] text-xs text-white">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-300 mb-1" data-translate="lbl_saving_target">Target Nominal (Rp)</label>
+                    <input type="number" id="addSvTarget" onchange="calculateEstimatedSavings()" required placeholder="50000000" class="w-full px-3.5 py-2 rounded-xl bg-[#070F1E] border border-[#1E3E62] text-xs text-white">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-300 mb-1" data-translate="lbl_saving_initial">Simpanan Awal (Rp)</label>
+                    <input type="number" id="addSvInitial" onchange="calculateEstimatedSavings()" placeholder="0" class="w-full px-3.5 py-2 rounded-xl bg-[#070F1E] border border-[#1E3E62] text-xs text-white">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-300 mb-1" data-translate="lbl_saving_deadline">Tenggat Waktu</label>
+                    <input type="date" id="addSvDeadline" onchange="calculateEstimatedSavings()" required class="w-full px-3.5 py-2 rounded-xl bg-[#070F1E] border border-[#1E3E62] text-xs text-white">
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-300 mb-1" data-translate="lbl_saving_schedule">Jadwal Setoran</label>
+                        <select id="addSvJadwalRutin" onchange="calculateEstimatedSavings()" class="w-full px-3 py-2 rounded-xl bg-[#070F1E] border border-[#1E3E62] text-xs text-white">
+                            <option value="Bebas">Bebas</option>
+                            <option value="Bulanan">Bulanan</option>
+                            <option value="Mingguan">Mingguan</option>
+                        </select>
+                    </div>
+                    <div id="addSvHariSetoranContainer" class="hidden">
+                        <label class="block text-xs font-semibold text-slate-300 mb-1" data-translate="lbl_saving_day">Tanggal Setoran</label>
+                        <input type="number" id="addSvHariSetoran" min="1" max="28" placeholder="1-28" class="w-full px-3 py-2 rounded-xl bg-[#070F1E] border border-[#1E3E62] text-xs text-white">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-300 mb-1">Kategori Tabungan</label>
+                    <select id="addSvCategorySelect" onchange="if(this.value==='Custom'){document.getElementById('addSvCategoryCustom').classList.remove('hidden')}else{document.getElementById('addSvCategoryCustom').classList.add('hidden')}" class="w-full px-3.5 py-2 rounded-xl bg-[#070F1E] border border-[#1E3E62] text-xs text-white">
+                        <option value="Personal">Pribadi</option>
+                        <option value="Mutual">Bersama</option>
+                        <option value="Family">Keluarga</option>
+                        <option value="Custom">Custom...</option>
+                    </select>
+                    <input type="text" id="addSvCategoryCustom" placeholder="Nama Kategori Custom" class="hidden w-full mt-2 px-3.5 py-2 rounded-xl bg-[#070F1E] border border-[#1E3E62] text-xs text-white">
+                </div>
+
+                <div id="addSvCalculationResult" class="p-3 rounded-xl bg-[#070F1E] border border-[#1E3E62] text-xs text-orange-400 font-medium"></div>
+
+                <button type="submit" class="w-full py-2.5 rounded-xl bg-orange-500 hover:bg-orange-600 text-white font-bold text-xs shadow-lg" data-translate="btn_save_target">Simpan Target Impian</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- 3. Savings Contribution Modal -->
+    <div id="savingContributionModal" class="fixed inset-0 z-[150] bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 transition-all duration-300 opacity-0 pointer-events-none">
+        <div id="savingContributionCard" class="max-w-sm w-full bg-[#0B192C] border border-[#1E3E62] rounded-3xl p-6 shadow-2xl space-y-4 transform scale-95 transition-all">
+            <div class="flex items-center justify-between border-b border-[#1E3E62]/40 pb-3">
+                <h3 class="text-base font-bold text-white">Setor Tabungan</h3>
+                <button onclick="closeSavingContributionModal()" class="text-slate-400 hover:text-white p-1 text-lg"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+
+            <input type="hidden" id="contribId">
+            <div>
+                <label class="block text-xs font-semibold text-slate-300 mb-1">Nominal Setoran (Rp)</label>
+                <input type="number" id="contribAmount" onkeyup="checkContribOverdraft()" placeholder="100000" class="w-full px-4 py-2.5 rounded-xl bg-[#070F1E] border border-[#1E3E62] text-lg font-bold text-white">
+            </div>
+
+            <div id="savingsPocketSourceContainer">
+                <label class="block text-xs font-semibold text-slate-300 mb-1">Sumber Akun Rekening</label>
+                <select id="contribSourceAccount" onchange="checkContribOverdraft()" class="w-full px-3.5 py-2 rounded-xl bg-[#070F1E] border border-[#1E3E62] text-xs text-white">
+                    <!-- Injected dynamically -->
+                </select>
+            </div>
+
+            <p id="contribOverdraftWarning" class="hidden text-xs text-rose-400 font-semibold"></p>
+
+            <button id="contribConfirmBtn" onclick="submitSavingContribution()" class="w-full py-3 rounded-xl bg-orange-500 hover:bg-orange-600 text-white font-bold text-xs shadow-lg">Konfirmasi Setoran</button>
+        </div>
+    </div>
+
+    <!-- 4. Manage Accounts Modal -->
+    <div id="manageAccountsModal" class="fixed inset-0 z-[150] bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 transition-all duration-300 opacity-0 pointer-events-none">
+        <div id="manageAccountsCard" class="max-w-lg w-full bg-[#0B192C] border border-[#1E3E62] rounded-3xl p-6 shadow-2xl space-y-5 transform scale-95 transition-all max-h-[90vh] overflow-y-auto no-scrollbar">
+            <div class="flex items-center justify-between border-b border-[#1E3E62]/40 pb-3">
+                <h3 class="text-base font-bold text-white">Kelola Akun Keuangan</h3>
+                <button onclick="closeManageAccountsModal()" class="text-slate-400 hover:text-white p-1 text-lg"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+
+            <form id="addAccountForm" onsubmit="handleAddAccountSubmit(event)" class="p-4 rounded-2xl bg-[#070F1E] border border-[#1E3E62] space-y-3">
+                <h4 class="text-xs font-bold text-white uppercase">Tambah Akun Rekening Baru</h4>
+                <div class="grid grid-cols-2 gap-3">
+                    <input type="text" id="newAccName" required placeholder="Nama Akun (GOPAY)" class="px-3 py-2 rounded-xl bg-[#0B192C] border border-[#1E3E62] text-xs text-white">
+                    <select id="newAccType" class="px-3 py-2 rounded-xl bg-[#0B192C] border border-[#1E3E62] text-xs text-white">
+                        <option value="Cash">Cash</option>
+                        <option value="Bank">Bank</option>
+                        <option value="E-Wallet">E-Wallet</option>
+                        <option value="Savings">Savings</option>
+                    </select>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <input type="text" id="newAccDesc" placeholder="Keterangan" class="px-3 py-2 rounded-xl bg-[#0B192C] border border-[#1E3E62] text-xs text-white">
+                    <input type="number" id="newAccBalance" required placeholder="Saldo Awal Rp" class="px-3 py-2 rounded-xl bg-[#0B192C] border border-[#1E3E62] text-xs text-white">
+                </div>
+                <button type="submit" class="w-full py-2 bg-orange-500 hover:bg-orange-600 text-white font-bold text-xs rounded-xl">Tambah Akun</button>
+            </form>
+
+            <div class="space-y-2">
+                <h4 class="text-xs font-bold text-slate-300">Daftar Rekening Aktif</h4>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-xs">
+                        <thead>
+                            <tr class="border-b border-[#1E3E62] text-slate-400">
+                                <th class="py-2 px-3">Nama</th>
+                                <th class="py-2 px-3">Tipe</th>
+                                <th class="py-2 px-3 text-right">Saldo</th>
+                                <th class="py-2 px-3 text-center">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="accountsTableBody" class="divide-y divide-[#1E3E62]/40">
+                            <!-- Injected dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 5. Global Confirmation Modal -->
+    <div id="confirmModal" class="fixed inset-0 z-[180] bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 transition-all duration-300 opacity-0 pointer-events-none">
+        <div id="confirmCard" class="max-w-sm w-full bg-[#0B192C] border border-[#1E3E62] rounded-3xl p-6 shadow-2xl text-center space-y-4 transform scale-95 transition-all">
+            <div class="w-12 h-12 rounded-full bg-rose-500/20 text-rose-400 flex items-center justify-center text-xl mx-auto"><i class="fa-solid fa-triangle-exclamation"></i></div>
+            <h3 id="confirmTitle" class="text-base font-bold text-white">Konfirmasi Tindakan</h3>
+            <p id="confirmDesc" class="text-xs text-slate-300">Apakah Anda yakin ingin menghapus data ini?</p>
+            <div class="flex gap-3 pt-2">
+                <button onclick="closeConfirmModal()" class="flex-1 py-2.5 rounded-xl bg-[#070F1E] border border-[#1E3E62] text-slate-300 font-bold text-xs">Batal</button>
+                <button onclick="handleConfirmYes()" class="flex-1 py-2.5 rounded-xl bg-rose-500 hover:bg-rose-600 text-white font-bold text-xs shadow-lg">Ya, Lanjutkan</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 6. Actionable Notification Modal -->
+    <div id="actionableNotifModal" class="fixed inset-0 z-[150] bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 transition-all duration-300 opacity-0 pointer-events-none">
+        <div id="actionableNotifCard" class="max-w-sm w-full bg-[#0B192C] border border-[#1E3E62] rounded-3xl p-6 shadow-2xl space-y-4 text-center transform scale-95 transition-all">
+            <div class="w-12 h-12 rounded-full bg-orange-500/20 text-orange-400 flex items-center justify-center text-xl mx-auto"><i class="fa-solid fa-[#070F1E] fa-bell"></i></div>
+            <h3 id="actionableNotifTitle" class="text-base font-bold text-white">Peringatan Penting</h3>
+            <p id="actionableNotifMessage" class="text-xs text-slate-300"></p>
+            <div id="actionableNotifCtaContainer" class="pt-2"></div>
+            <button onclick="closeActionableNotifModal()" class="w-full py-2 text-xs text-slate-400 hover:text-white">Tutup</button>
+        </div>
+    </div>
+
+    <!-- 7. Help Tutorial Modal -->
+    <div id="helpTutorialModal" class="fixed inset-0 z-[150] bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 transition-all duration-300 opacity-0 pointer-events-none">
+        <div id="helpTutorialCard" class="max-w-md w-full bg-[#0B192C] border border-[#1E3E62] rounded-3xl p-6 shadow-2xl space-y-4 transform scale-95 transition-all">
+            <div class="flex items-center gap-3">
+                <div id="helpTutorialIcon" class="w-10 h-10 rounded-xl bg-orange-500/20 text-orange-400 flex items-center justify-center text-lg"><i class="fa-solid fa-book"></i></div>
+                <h4 id="helpTutorialTitle" class="text-sm font-bold text-white">Tutorial</h4>
+            </div>
+            <p id="helpTutorialContent" class="text-xs text-slate-300 leading-relaxed"></p>
+            <div id="helpTutorialCtaContainer"></div>
+            <button onclick="closeHelpTutorialModal()" class="w-full py-2 rounded-xl bg-[#070F1E] text-slate-300 text-xs font-bold">Tutup Tutorial</button>
+        </div>
+    </div>
+
+    <!-- 8. Receipt OCR Scanner Modal -->
+    <div id="ocrModal" class="fixed inset-0 z-[160] bg-black/80 backdrop-blur-md flex items-center justify-center p-4 transition-all duration-300 opacity-0 pointer-events-none">
+        <div id="ocrCard" class="max-w-sm w-full bg-[#0B192C] border border-[#1E3E62] rounded-3xl p-6 shadow-2xl space-y-4 text-center transform scale-95 transition-all relative overflow-hidden">
+            <div class="flex items-center justify-between border-b border-[#1E3E62]/40 pb-2">
+                <h3 class="text-sm font-bold text-white">Scan Struk Belanja (AI OCR)</h3>
+                <button onclick="closeReceiptScanner()" class="text-slate-400 hover:text-white p-1 text-lg"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+
+            <div id="ocrPreviewContainer" class="relative w-full h-56 rounded-2xl bg-[#070F1E] border border-[#1E3E62] overflow-hidden flex items-center justify-center">
+                <img id="ocrImagePreview" class="hidden w-full h-full object-contain">
+                <div id="ocrInitialPlaceholder" class="text-center p-4">
+                    <i class="fa-solid fa-cloud-arrow-up text-3xl text-orange-400 mb-2"></i>
+                    <p class="text-xs font-semibold text-slate-300">Pilih / Foto Struk Belanja</p>
+                    <p class="text-[10px] text-slate-500 mt-1">Format JPG, PNG, WEBP</p>
+                </div>
+                <div id="ocrScanningLaser" class="hidden laser-scan-line absolute left-0 right-0 h-1 bg-gradient-to-r from-transparent via-orange-500 to-transparent shadow-lg shadow-orange-500"></div>
+                <div id="ocrScanningStatusOverlay" class="hidden absolute inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center text-xs text-orange-400 font-bold">Menganalisis Struk...</div>
+            </div>
+
+            <div class="flex gap-2">
+                <button onclick="document.getElementById('nativeCameraInput').click()" class="flex-1 py-2.5 rounded-xl bg-orange-500 hover:bg-orange-600 text-white font-bold text-xs shadow-lg">Ambil Foto / Upload</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 9. OCR Review Modal -->
+    <div id="ocrReviewModal" class="fixed inset-0 z-[170] bg-black/80 backdrop-blur-md flex items-center justify-center p-4 transition-all duration-300 opacity-0 pointer-events-none">
+        <div id="ocrReviewCard" class="max-w-md w-full bg-[#0B192C] border border-[#1E3E62] rounded-3xl p-6 shadow-2xl space-y-4 transform scale-95 transition-all max-h-[90vh] overflow-y-auto no-scrollbar">
+            <div class="flex items-center justify-between border-b border-[#1E3E62]/40 pb-2">
+                <div class="flex items-center gap-2">
+                    <h3 class="text-sm font-bold text-white">Hasil Analisis Struk AI</h3>
+                    <span id="ocrConfidenceDot" class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
+                    <span id="ocrConfidenceLabel" class="text-[10px] text-emerald-400 font-semibold">Tinggi</span>
+                </div>
+                <button onclick="closeOcrReviewModal()" class="text-slate-400 hover:text-white p-1 text-lg"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+
+            <div class="w-full h-36 rounded-xl bg-[#070F1E] overflow-hidden flex items-center justify-center">
+                <img id="ocrReviewImage" class="w-full h-full object-contain">
+            </div>
+
+            <div class="space-y-3">
+                <div>
+                    <label class="block text-[11px] font-semibold text-slate-400 mb-1">Nominal Terdeteksi (Rp)</label>
+                    <input type="number" id="ocrReviewAmount" class="w-full px-3.5 py-2 rounded-xl bg-[#070F1E] border border-[#1E3E62] text-sm font-bold text-white">
+                </div>
+                <div>
+                    <label class="block text-[11px] font-semibold text-slate-400 mb-1">Deskripsi Item</label>
+                    <input type="text" id="ocrReviewDesc" class="w-full px-3.5 py-2 rounded-xl bg-[#070F1E] border border-[#1E3E62] text-xs text-white">
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-[11px] font-semibold text-slate-400 mb-1">Kategori</label>
+                        <select id="ocrReviewCategory" class="w-full px-3 py-2 rounded-xl bg-[#070F1E] border border-[#1E3E62] text-xs text-white">
+                            <!-- Injected dynamically -->
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-semibold text-slate-400 mb-1">Akun Pembayaran</label>
+                        <select id="ocrReviewAccount" class="w-full px-3 py-2 rounded-xl bg-[#070F1E] border border-[#1E3E62] text-xs text-white">
+                            <!-- Injected dynamically -->
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <button id="ocrMatchConfirmation" onclick="submitOcrReview()" class="w-full py-3 rounded-xl bg-orange-500 hover:bg-orange-600 text-white font-bold text-xs shadow-lg">Catat Transaksi Ini</button>
+        </div>
+    </div>
+
+    <!-- 10. Generic Notification Modal -->
+    <div id="notificationModal" class="fixed inset-0 z-[150] bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 transition-all duration-300 opacity-0 pointer-events-none">
+        <div id="notifCard" class="max-w-md w-full bg-[#0B192C] border border-[#1E3E62] rounded-3xl p-6 shadow-2xl space-y-4 transform scale-95 transition-all">
+            <div class="flex items-center justify-between border-b border-[#1E3E62]/40 pb-2">
+                <h3 class="text-sm font-bold text-white">Notifikasi Savora</h3>
+                <button onclick="document.getElementById('notificationModal').classList.add('opacity-0', 'pointer-events-none')" class="text-slate-400 hover:text-white p-1 text-lg"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div id="notifListContainer" class="space-y-2 max-h-80 overflow-y-auto no-scrollbar">
+                <!-- Injected dynamically -->
+            </div>
+        </div>
+    </div>
+
+    <?!= include('javascript'); ?>
+</body>
+</html>
