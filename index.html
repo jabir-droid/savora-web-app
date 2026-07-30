@@ -41,7 +41,7 @@
     </script>
 
     <!-- INCLUDE STYLESHEET CUSTOM -->
-    <style>
+<style>
     /**
    * ==========================================
    * 🎨 SAVORA - CUSTOM STYLESHEET (styles.html)
@@ -2340,7 +2340,7 @@
     </div>
 
     <!-- JAVASCRIPT LOGIC SYSTEM -->
-    <script>
+<script>
     /**
      * ===================================================================
      * 🤖 SAVORA - WEB APP FRONTEND ENGINE (javascript.html)
@@ -4400,10 +4400,7 @@
         localStorage.setItem('savora_currency', val);
 
         var formIndicator = document.getElementById('formCurrencyIndicator');
-        if (formIndicator) formIndicator.innerText = val === 'USD' ? '
-</body>
-
-</html> : 'Rp';
+        if (formIndicator) formIndicator.innerText = val === 'USD' ? '$' : 'Rp';
 
         showToast("Currency", "Format mata uang diganti ke: " + val, "success");
         renderAllUI();
