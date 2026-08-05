@@ -1,24 +1,39 @@
-<svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+<svg viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg">
   <!-- Background -->
-  <rect width="120" height="120" rx="28" fill="#152843" />
+  <rect width="400" height="400" rx="80" fill="#1D2D44" />
   
-  <!-- Orange Arrow (Top/Pemasukan) -->
-  <path d="M 80 34 L 45 34 A 10 10 0 0 0 45 54 L 68 54" fill="none" stroke="#FF7A1A" stroke-width="10" stroke-linecap="butt" />
-  <polygon points="68,44 82,54 68,64" fill="#FF7A1A" stroke="#FF7A1A" stroke-width="2" stroke-linejoin="round" />
+  <!-- Orange Arrow -->
+  <path d="M 150 170 
+           C 200 170, 200 230, 250 230 
+           L 150 230 
+           A 90 90 0 0 1 150 50 
+           L 260 50 
+           L 260 25 
+           L 310 80 
+           L 260 135 
+           L 260 110 
+           L 150 110 
+           A 30 30 0 0 0 150 170 
+           Z" 
+        fill="#FF7A1A" stroke="#FF7A1A" stroke-width="8" stroke-linejoin="round" />
+
+  <!-- White Arrow -->
+  <g transform="rotate(180 200 200)">
+    <path d="M 150 170 
+             C 200 170, 200 230, 250 230 
+             L 150 230 
+             A 90 90 0 0 1 150 50 
+             L 260 50 
+             L 260 25 
+             L 310 80 
+             L 260 135 
+             L 260 110 
+             L 150 110 
+             A 30 30 0 0 0 150 170 
+             Z" 
+          fill="#FFFFFF" stroke="#FFFFFF" stroke-width="8" stroke-linejoin="round" />
+  </g>
   
-  <!-- White Arrow (Bottom/Pengeluaran) -->
-  <path d="M 40 86 L 75 86 A 10 10 0 0 0 75 66 L 52 66" fill="none" stroke="#FFFFFF" stroke-width="10" stroke-linecap="butt" />
-  <polygon points="52,76 38,66 52,56" fill="#FFFFFF" stroke="#FFFFFF" stroke-width="2" stroke-linejoin="round" />
-  
-  <!-- 4 Dots Left (Orange) -->
-  <circle cx="18" cy="40" r="3" fill="#FF7A1A" />
-  <circle cx="18" cy="48" r="3" fill="#FF7A1A" />
-  <circle cx="27" cy="40" r="3" fill="#FF7A1A" />
-  <circle cx="27" cy="48" r="3" fill="#FF7A1A" />
-  
-  <!-- 4 Dots Right (White) -->
-  <circle cx="93" cy="72" r="3" fill="#FFFFFF" />
-  <circle cx="93" cy="80" r="3" fill="#FFFFFF" />
-  <circle cx="102" cy="72" r="3" fill="#FFFFFF" />
-  <circle cx="102" cy="80" r="3" fill="#FFFFFF" />
+  <!-- Gap Cutout -->
+  <path d="M 150 170 C 200 170, 200 230, 250 230" fill="none" stroke="#1D2D44" stroke-width="24" stroke-linecap="round" />
 </svg>
