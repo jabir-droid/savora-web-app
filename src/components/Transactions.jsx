@@ -189,7 +189,7 @@ export default function Transactions() {
           </div>
         </div>
 
-        <div className="overflow-x-auto">
+        <div className="hidden md:block overflow-x-auto mt-4">
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="border-b border-slate-200 text-xs font-semibold text-slate-400 uppercase">
@@ -246,6 +246,52 @@ export default function Transactions() {
               )}
             </tbody>
           </table>
+        </div>
+
+        {/* MOBILE CARDS VIEW */}
+        <div className="flex flex-col gap-4 md:hidden mt-4">
+           {isLoading ? (
+             <div className="text-center py-8 text-slate-400">{t('tx.loading')}</div>
+           ) : filteredTransactions.length === 0 ? (
+             <div className="text-center py-8 text-slate-400">
+                <i className="fa-solid fa-folder-open text-4xl mb-3 text-slate-200"></i>
+                <p>{t('tx.not_found')}</p>
+             </div>
+           ) : (
+             filteredTransactions.map(tx => (
+               <div key={tx.id} className="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm flex flex-col gap-3">
+                 <div className="flex justify-between items-start">
+                   <div className="flex items-center gap-2">
+                     <span className={`px-2 py-1 rounded-md text-[10px] font-bold ${
+                        tx.tipe === 'Pemasukan' ? 'bg-emerald-100 text-emerald-700' :
+                        tx.tipe === 'Pengeluaran' ? 'bg-rose-100 text-rose-700' : 'bg-blue-100 text-blue-700'
+                      }`}>
+                        {tx.tipe === 'Pemasukan' ? t('tx.type_income') : tx.tipe === 'Pengeluaran' ? t('tx.type_expense') : tx.tipe === 'Transfer' ? t('tx.type_transfer') : tx.tipe}
+                     </span>
+                     <span className="text-xs font-semibold text-slate-600">{tx.kategori}</span>
+                   </div>
+                   <button onClick={() => setConfirmModal({ isOpen: true, item: tx })} disabled={isDeleting} className="text-rose-400 hover:text-rose-600 p-1" title={t('tx.delete')}>
+                     <i className="fa-solid fa-trash text-sm"></i>
+                   </button>
+                 </div>
+                 
+                 <div>
+                   <h4 className="text-sm font-bold text-slate-800">{tx.deskripsi || '-'}</h4>
+                   <p className="text-xs text-slate-500 mt-1">{tx.akun} {tx.transferke && `→ ${tx.transferke}`}</p>
+                 </div>
+                 
+                 <div className="flex justify-between items-end mt-1 pt-3 border-t border-slate-100">
+                   <span className="text-[11px] text-slate-400">{formatDate(tx.created_at)}</span>
+                   <span className={`text-base font-extrabold ${
+                      tx.tipe === 'Pemasukan' ? 'text-emerald-500' : 
+                      tx.tipe === 'Pengeluaran' ? 'text-rose-500' : 'text-blue-500'
+                    }`}>
+                      {tx.tipe === 'Pemasukan' ? '+' : tx.tipe === 'Pengeluaran' ? '-' : ''} {formatCurrency(tx.jumlah)}
+                   </span>
+                 </div>
+               </div>
+             ))
+           )}
         </div>
       </div>
 

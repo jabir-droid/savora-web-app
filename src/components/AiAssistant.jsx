@@ -66,7 +66,14 @@ export default function AiAssistant() {
     setTimeout(async () => {
       let aiResponse = ""
       if (currentMode === 'consult') {
-        aiResponse = t('ai.response_consult').replace('{msg}', userMsg)
+        const msg = userMsg.toLowerCase()
+        if (msg === 'tes' || msg === 'test' || msg.includes('halo') || msg.includes('hai ') || msg === 'hai' || msg.includes('hello')) {
+          aiResponse = "Halo! 👋 Ada yang bisa saya bantu terkait pencatatan pengeluaran, tabungan, atau fitur aplikasi Savora ini?"
+        } else if (msg.includes('investasi') || msg.includes('hemat') || msg.includes('nabung') || msg.includes('uang') || msg.includes('keuangan') || msg.includes('finansial') || msg.includes('gaji') || msg.includes('saldo')) {
+          aiResponse = t('ai.response_consult').replace('{msg}', userMsg)
+        } else {
+          aiResponse = "Mohon maaf, saya adalah Asisten AI Keuangan Savora. Saya hanya bisa membantu menjawab pertanyaan seputar finansial, tips hemat, investasi, atau panduan menggunakan aplikasi ini. Ada yang bisa saya bantu terkait hal tersebut? 😊"
+        }
       } else {
         // Parsing logika NLP Sederhana: "beli kopi 50 ribu bca"
         // Regex menangkap kata kunci: (Beli|Bayar|Pemasukan dll) (Deskripsi) (Nominal) (ribu/jt) (dompet)
@@ -132,8 +139,8 @@ export default function AiAssistant() {
   }
 
   return (
-    <section className="space-y-6 animate-fade-in">
-      <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200/60 flex flex-col h-[520px]">
+    <section className="space-y-6 animate-fade-in h-full flex flex-col">
+      <div className="bg-white rounded-2xl p-4 md:p-6 shadow-sm border border-slate-200/60 flex flex-col flex-1 min-h-[calc(100vh-140px)] md:min-h-0 md:h-[520px]">
         
         <div className="border-b border-slate-100 pb-4 mb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex items-center gap-3">

@@ -54,8 +54,9 @@ export default function Savings() {
   const filteredSavings = activeFilter === t('savings.filter_all') ? savings : savings.filter(s => s.kategori === activeFilter)
 
   return (
-    <section className="space-y-6 animate-fade-in w-full">
-      {isLoading ? (
+    <>
+      <section className="space-y-6 animate-fade-in w-full">
+        {isLoading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           <SkeletonCard />
           <SkeletonCard />
@@ -163,6 +164,7 @@ export default function Savings() {
         </div>
         </div>
       )}
+      </section>
 
       <AddSavingGoalModal 
         isOpen={isAddModalOpen} 
@@ -176,6 +178,6 @@ export default function Savings() {
         onSuccess={loadData} 
         saving={selectedSaving}
       />
-    </section>
+    </>
   )
 }

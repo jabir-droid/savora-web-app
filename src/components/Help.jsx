@@ -25,8 +25,9 @@ export default function Help({ setActiveTab }) {
   }
 
   return (
-    <section className="space-y-6 animate-fade-in relative">
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <>
+      <section className="space-y-6 animate-fade-in relative">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         
         {/* LEFT COLUMN - FAQ & Panduan */}
         <div className="lg:col-span-2 space-y-6">
@@ -152,6 +153,7 @@ export default function Help({ setActiveTab }) {
         </div>
 
       </div>
+      </section>
 
       {/* Guide Pop-up Modal */}
       {activeGuide === 'ocr' && (
@@ -380,6 +382,6 @@ export default function Help({ setActiveTab }) {
           </div>
         </div>
       )}
-    </section>
+    </>
   )
 }
