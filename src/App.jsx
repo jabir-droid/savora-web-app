@@ -29,6 +29,7 @@ export default function App() {
   const [currentTime, setCurrentTime] = useState(new Date())
   const [unreadNotifsCount, setUnreadNotifsCount] = useState(0)
   const [isNotifModalOpen, setIsNotifModalOpen] = useState(false)
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [transactionInitialData, setTransactionInitialData] = useState(null)
   
   const { user, signIn, signUp, signOut } = useAuth()
@@ -168,12 +169,26 @@ export default function App() {
     )
   }
 
+  // Helper untuk menutup sidebar saat menu di-klik di mobile
+  const handleMenuClick = (tab) => {
+    setActiveTab(tab)
+    setIsMobileMenuOpen(false)
+  }
+
   // Tampilan Utama (Persis sama seperti original Savora)
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col md:flex-row font-sans">
       
-      {/* 🧭 MAIN SIDEBAR (DESKTOP) */}
-      <aside className="fixed left-0 top-0 bottom-0 w-64 bg-gradient-to-b from-savora-900 to-savora-800 text-white p-6 z-30 hidden md:flex flex-col justify-between shadow-2xl border-r border-savora-800/40">
+      {/* MOBILE OVERLAY */}
+      {isMobileMenuOpen && (
+        <div 
+          className="fixed inset-0 bg-slate-900/50 z-30 md:hidden" 
+          onClick={() => setIsMobileMenuOpen(false)}
+        />
+      )}
+
+      {/* 🧭 MAIN SIDEBAR */}
+      <aside className={`fixed left-0 top-0 bottom-0 w-64 bg-gradient-to-b from-savora-900 to-savora-800 text-white p-6 z-40 flex flex-col justify-between shadow-2xl border-r border-savora-800/40 transition-transform duration-300 md:translate-x-0 ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'} md:flex`}>
         <div className="flex items-center gap-3 mb-6 flex-shrink-0">
           <div className="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center shadow-lg border border-white/10">
             <i className="fa-solid fa-wallet text-xl text-savora-orange"></i>
@@ -182,34 +197,41 @@ export default function App() {
             <h1 className="text-xl font-extrabold tracking-tight">Savora</h1>
             <p className="text-[10px] text-savora-orange tracking-wider uppercase font-bold">Smart Wallet Advisor</p>
           </div>
+          {/* Close button for mobile */}
+          <button 
+            onClick={() => setIsMobileMenuOpen(false)}
+            className="md:hidden ml-auto text-slate-400 hover:text-white"
+          >
+            <i className="fa-solid fa-xmark text-xl"></i>
+          </button>
         </div>
 
         <nav className="space-y-1 flex-1 overflow-y-auto min-h-0 no-scrollbar pr-1">
-          <button onClick={() => setActiveTab('dashboard')} className={`tab-btn w-full flex items-center gap-3 px-4 py-2.5 rounded-xl transition duration-200 text-[13px] ${activeTab === 'dashboard' ? 'font-bold bg-white/10 text-white' : 'font-medium hover:bg-white/5 text-slate-300'}`}>
+          <button onClick={() => handleMenuClick('dashboard')} className={`tab-btn w-full flex items-center gap-3 px-4 py-2.5 rounded-xl transition duration-200 text-[13px] ${activeTab === 'dashboard' ? 'font-bold bg-white/10 text-white' : 'font-medium hover:bg-white/5 text-slate-300'}`}>
             <i className="fa-solid fa-house w-5 text-center text-slate-400"></i> <span>{t('menu.dashboard')}</span>
           </button>
-          <button onClick={() => setActiveTab('transactions')} className={`tab-btn w-full flex items-center gap-3 px-4 py-2.5 rounded-xl transition duration-200 text-[13px] ${activeTab === 'transactions' ? 'font-bold bg-white/10 text-white' : 'font-medium hover:bg-white/5 text-slate-300'}`}>
+          <button onClick={() => handleMenuClick('transactions')} className={`tab-btn w-full flex items-center gap-3 px-4 py-2.5 rounded-xl transition duration-200 text-[13px] ${activeTab === 'transactions' ? 'font-bold bg-white/10 text-white' : 'font-medium hover:bg-white/5 text-slate-300'}`}>
             <i className="fa-solid fa-list-ul w-5 text-center text-slate-400"></i> <span>{t('menu.transactions')}</span>
           </button>
-          <button onClick={() => setActiveTab('savings')} className={`tab-btn w-full flex items-center gap-3 px-4 py-2.5 rounded-xl transition duration-200 text-[13px] ${activeTab === 'savings' ? 'font-bold bg-white/10 text-white' : 'font-medium hover:bg-white/5 text-slate-300'}`}>
+          <button onClick={() => handleMenuClick('savings')} className={`tab-btn w-full flex items-center gap-3 px-4 py-2.5 rounded-xl transition duration-200 text-[13px] ${activeTab === 'savings' ? 'font-bold bg-white/10 text-white' : 'font-medium hover:bg-white/5 text-slate-300'}`}>
             <i className="fa-solid fa-piggy-bank w-5 text-center text-slate-400"></i> <span>{t('menu.savings')}</span>
           </button>
-          <button onClick={() => setActiveTab('statistics')} className={`tab-btn w-full flex items-center gap-3 px-4 py-2.5 rounded-xl transition duration-200 text-[13px] ${activeTab === 'statistics' ? 'font-bold bg-white/10 text-white' : 'font-medium hover:bg-white/5 text-slate-300'}`}>
+          <button onClick={() => handleMenuClick('statistics')} className={`tab-btn w-full flex items-center gap-3 px-4 py-2.5 rounded-xl transition duration-200 text-[13px] ${activeTab === 'statistics' ? 'font-bold bg-white/10 text-white' : 'font-medium hover:bg-white/5 text-slate-300'}`}>
             <i className="fa-solid fa-chart-pie w-5 text-center text-slate-400"></i> <span>{t('menu.statistics')}</span>
           </button>
-          <button onClick={() => setActiveTab('debts')} className={`tab-btn w-full flex items-center gap-3 px-4 py-2.5 rounded-xl transition duration-200 text-[13px] ${activeTab === 'debts' ? 'font-bold bg-white/10 text-white' : 'font-medium hover:bg-white/5 text-slate-300'}`}>
+          <button onClick={() => handleMenuClick('debts')} className={`tab-btn w-full flex items-center gap-3 px-4 py-2.5 rounded-xl transition duration-200 text-[13px] ${activeTab === 'debts' ? 'font-bold bg-white/10 text-white' : 'font-medium hover:bg-white/5 text-slate-300'}`}>
             <i className="fa-solid fa-handshake w-5 text-center text-slate-400"></i> <span>{t('menu.debts')}</span>
           </button>
-          <button onClick={() => setActiveTab('calendar')} className={`tab-btn w-full flex items-center gap-3 px-4 py-2.5 rounded-xl transition duration-200 text-[13px] ${activeTab === 'calendar' ? 'font-bold bg-white/10 text-white' : 'font-medium hover:bg-white/5 text-slate-300'}`}>
+          <button onClick={() => handleMenuClick('calendar')} className={`tab-btn w-full flex items-center gap-3 px-4 py-2.5 rounded-xl transition duration-200 text-[13px] ${activeTab === 'calendar' ? 'font-bold bg-white/10 text-white' : 'font-medium hover:bg-white/5 text-slate-300'}`}>
             <i className="fa-regular fa-calendar w-5 text-center text-slate-400"></i> <span>{t('menu.calendar')}</span>
           </button>
-          <button onClick={() => setActiveTab('categories')} className={`tab-btn w-full flex items-center gap-3 px-4 py-2.5 rounded-xl transition duration-200 text-[13px] ${activeTab === 'categories' ? 'font-bold bg-white/10 text-white' : 'font-medium hover:bg-white/5 text-slate-300'}`}>
+          <button onClick={() => handleMenuClick('categories')} className={`tab-btn w-full flex items-center gap-3 px-4 py-2.5 rounded-xl transition duration-200 text-[13px] ${activeTab === 'categories' ? 'font-bold bg-white/10 text-white' : 'font-medium hover:bg-white/5 text-slate-300'}`}>
             <i className="fa-solid fa-tags w-5 text-center text-slate-400"></i> <span>{t('menu.categories')}</span>
           </button>
-          <button onClick={() => setActiveTab('ai_assistant')} className={`tab-btn w-full flex items-center gap-3 px-4 py-2.5 rounded-xl transition duration-200 text-[13px] ${activeTab === 'ai_assistant' ? 'font-bold bg-white/10 text-white' : 'font-medium hover:bg-white/5 text-slate-300'}`}>
+          <button onClick={() => handleMenuClick('ai_assistant')} className={`tab-btn w-full flex items-center gap-3 px-4 py-2.5 rounded-xl transition duration-200 text-[13px] ${activeTab === 'ai_assistant' ? 'font-bold bg-white/10 text-white' : 'font-medium hover:bg-white/5 text-slate-300'}`}>
             <i className="fa-solid fa-robot text-savora-orange w-5 text-center"></i> <span>{t('menu.ai')}</span>
           </button>
-          <button onClick={() => setActiveTab('notifications')} className={`tab-btn w-full flex items-center gap-3 px-4 py-2.5 rounded-xl transition duration-200 text-[13px] ${activeTab === 'notifications' ? 'font-bold bg-white/10 text-white' : 'font-medium hover:bg-white/5 text-slate-300'}`}>
+          <button onClick={() => handleMenuClick('notifications')} className={`tab-btn w-full flex items-center gap-3 px-4 py-2.5 rounded-xl transition duration-200 text-[13px] ${activeTab === 'notifications' ? 'font-bold bg-white/10 text-white' : 'font-medium hover:bg-white/5 text-slate-300'}`}>
             <i className="fa-solid fa-bell w-5 text-center text-slate-400"></i> <span>{t('menu.notifications')}</span>
           </button>
         </nav>
@@ -226,10 +248,10 @@ export default function App() {
           </div>
 
           <div className="space-y-1">
-            <button onClick={() => setActiveTab('settings')} className={`tab-btn w-full flex items-center gap-3 px-4 py-2 rounded-lg text-[13px] transition ${activeTab === 'settings' ? 'bg-white/10 text-white' : 'text-slate-300 hover:bg-white/5'}`}>
+            <button onClick={() => handleMenuClick('settings')} className={`tab-btn w-full flex items-center gap-3 px-4 py-2 rounded-lg text-[13px] transition ${activeTab === 'settings' ? 'bg-white/10 text-white' : 'text-slate-300 hover:bg-white/5'}`}>
               <i className="fa-solid fa-gears w-5 text-center text-slate-400"></i> <span>{t('menu.settings')}</span>
             </button>
-            <button onClick={() => setActiveTab('help')} className={`tab-btn w-full flex items-center gap-3 px-4 py-2 rounded-lg text-[13px] transition ${activeTab === 'help' ? 'bg-white/10 text-white' : 'text-slate-300 hover:bg-white/5'}`}>
+            <button onClick={() => handleMenuClick('help')} className={`tab-btn w-full flex items-center gap-3 px-4 py-2 rounded-lg text-[13px] transition ${activeTab === 'help' ? 'bg-white/10 text-white' : 'text-slate-300 hover:bg-white/5'}`}>
               <i className="fa-solid fa-circle-question w-5 text-center text-slate-400"></i> <span>{t('menu.help')}</span>
             </button>
             <button 
@@ -248,6 +270,43 @@ export default function App() {
       {/* CONTENT CONTAINER */}
       <main className="flex-1 p-4 md:p-8 md:pl-72 max-w-7xl w-full">
         
+        {/* MOBILE HEADER */}
+        <div className="flex md:hidden justify-between items-center mb-6 pb-4 border-b border-slate-200">
+          <div className="flex items-center gap-3">
+            <button 
+              onClick={() => setIsMobileMenuOpen(true)}
+              className="p-2 -ml-2 text-slate-600 hover:bg-slate-100 rounded-lg transition"
+            >
+              <i className="fa-solid fa-bars text-xl"></i>
+            </button>
+            <h2 className="text-xl font-extrabold text-slate-800 tracking-tight">
+              {activeTab === 'dashboard' && t('header.title.dashboard')}
+              {activeTab === 'transactions' && t('header.title.transactions')}
+              {activeTab === 'savings' && t('header.title.savings')}
+              {activeTab === 'statistics' && t('header.title.statistics')}
+              {activeTab === 'debts' && t('header.title.debts')}
+              {activeTab === 'calendar' && t('header.title.calendar')}
+              {activeTab === 'categories' && t('header.title.categories')}
+              {activeTab === 'ai_assistant' && t('header.title.ai')}
+              {activeTab === 'settings' && t('header.title.settings')}
+              {activeTab === 'notifications' && t('header.title.notifications')}
+              {activeTab === 'help' && t('header.title.help')}
+            </h2>
+          </div>
+          
+          <div className="flex items-center gap-2">
+            <button onClick={() => setIsNotifModalOpen(true)} className="relative p-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-lg shadow-sm transition">
+              <i className="fa-solid fa-bell text-sm"></i>
+              {unreadNotifsCount > 0 && (
+                <span className="absolute -top-1 -right-1 w-3 h-3 bg-rose-500 border-2 border-slate-50 rounded-full animate-pulse"></span>
+              )}
+            </button>
+            <button onClick={() => setIsModalOpen(true)} className="bg-savora-orange text-white w-8 h-8 rounded-lg flex items-center justify-center shadow-md">
+              <i className="fa-solid fa-plus"></i>
+            </button>
+          </div>
+        </div>
+
         {/* TOP NOTIFICATION HEADER (Desktop Only) */}
         <div className="hidden md:flex justify-between items-center mb-8 pb-4 border-b border-slate-200">
           <div>
