@@ -220,7 +220,7 @@ export default function App() {
             <i className="fa-solid fa-wallet text-xl text-savora-orange"></i>
           </div>
           <div>
-            <h1 className="text-xl font-extrabold tracking-tight">Savora</h1>
+            <h1 className="text-xl font-extrabold tracking-tight">Savora AI</h1>
             <p className="text-[10px] text-savora-orange tracking-wider uppercase font-bold">Smart Wallet Advisor</p>
           </div>
           {/* Close button for mobile */}
@@ -294,7 +294,7 @@ export default function App() {
       </aside>
 
       {/* CONTENT CONTAINER */}
-      <main className="flex-1 p-4 md:p-8 md:pl-72 max-w-7xl w-full">
+      <main className="flex-1 p-4 pb-24 md:pb-8 md:p-8 md:pl-72 max-w-7xl w-full">
         
         {/* MOBILE HEADER */}
         <div className="flex md:hidden justify-between items-center mb-6 pb-4 border-b border-slate-200">
@@ -409,6 +409,36 @@ export default function App() {
           onOpenTransaction={openTransactionWithData}
         />
       </main>
+
+      {/* MOBILE BOTTOM NAVIGATION */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 flex justify-around items-center px-2 pb-safe pt-2 shadow-[0_-4px_15px_rgba(0,0,0,0.05)] z-40 h-16">
+        <button onClick={() => setActiveTab('dashboard')} className={`flex flex-col items-center justify-center w-16 h-full transition ${activeTab === 'dashboard' ? 'text-savora-orange' : 'text-slate-400 hover:text-slate-600'}`}>
+          <i className={`fa-solid fa-house text-xl mb-1 ${activeTab === 'dashboard' ? 'scale-110' : ''}`}></i>
+          <span className="text-[10px] font-medium">Beranda</span>
+        </button>
+        <button onClick={() => setActiveTab('transactions')} className={`flex flex-col items-center justify-center w-16 h-full transition ${activeTab === 'transactions' ? 'text-savora-orange' : 'text-slate-400 hover:text-slate-600'}`}>
+          <i className={`fa-solid fa-list-ul text-xl mb-1 ${activeTab === 'transactions' ? 'scale-110' : ''}`}></i>
+          <span className="text-[10px] font-medium">Riwayat</span>
+        </button>
+        
+        <div className="relative w-16 h-full flex justify-center">
+          <button 
+            onClick={() => setIsModalOpen(true)} 
+            className="absolute -top-5 w-14 h-14 bg-savora-orange rounded-full text-white shadow-lg shadow-savora-orange/40 flex items-center justify-center text-2xl border-4 border-slate-50 transition active:scale-95"
+          >
+            <i className="fa-solid fa-plus"></i>
+          </button>
+        </div>
+
+        <button onClick={() => setActiveTab('ai_assistant')} className={`flex flex-col items-center justify-center w-16 h-full transition ${activeTab === 'ai_assistant' ? 'text-savora-orange' : 'text-slate-400 hover:text-slate-600'}`}>
+          <i className={`fa-solid fa-robot text-xl mb-1 ${activeTab === 'ai_assistant' ? 'scale-110' : ''}`}></i>
+          <span className="text-[10px] font-medium">AI</span>
+        </button>
+        <button onClick={() => setActiveTab('settings')} className={`flex flex-col items-center justify-center w-16 h-full transition ${activeTab === 'settings' ? 'text-savora-orange' : 'text-slate-400 hover:text-slate-600'}`}>
+          <i className={`fa-solid fa-user text-xl mb-1 ${activeTab === 'settings' ? 'scale-110' : ''}`}></i>
+          <span className="text-[10px] font-medium">Profil</span>
+        </button>
+      </nav>
     </div>
   )
 }

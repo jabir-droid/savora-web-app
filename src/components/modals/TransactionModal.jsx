@@ -139,17 +139,28 @@ export default function TransactionModal({ isOpen, onClose, onSuccess, initialDa
           </div>
 
           <div>
-            <label className="block text-xs text-slate-500 mb-1 font-semibold">{t('modal_tx.category_label')}</label>
-            <select value={kategori} onChange={e => setKategori(e.target.value)}
-              className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-savora-800">
+            <label className="block text-xs text-slate-500 mb-2 font-semibold">{t('modal_tx.category_label')}</label>
+            <div className="flex overflow-x-auto gap-2 pb-2 no-scrollbar">
               {categories.length > 0 ? (
                 categories.map(c => (
-                  <option key={c.id} value={c.namakategori}>{c.namakategori}</option>
+                  <button 
+                    key={c.id} 
+                    type="button"
+                    onClick={() => setKategori(c.namakategori)}
+                    className={`whitespace-nowrap px-4 py-1.5 rounded-full text-xs font-bold transition-all border ${kategori === c.namakategori ? 'bg-savora-800 text-white border-savora-800 shadow-md' : 'bg-white text-slate-500 border-slate-200 hover:bg-slate-50 active:scale-95'}`}
+                  >
+                    {c.namakategori}
+                  </button>
                 ))
               ) : (
-                <option value="Lainnya">{t('modal_tx.category_other')}</option>
+                <button 
+                  type="button"
+                  className="whitespace-nowrap px-4 py-1.5 rounded-full text-xs font-bold bg-savora-800 text-white border-savora-800 shadow-md"
+                >
+                  {t('modal_tx.category_other')}
+                </button>
               )}
-            </select>
+            </div>
           </div>
 
           <div>

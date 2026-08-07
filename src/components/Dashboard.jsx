@@ -319,6 +319,46 @@ export default function Dashboard({ setActiveTab }) {
         </div>
       </div>
       
+      {/* Menu Cepat (Quick Actions) */}
+      <div className="grid grid-cols-4 gap-3">
+        <button 
+          onClick={() => { setOcrResult({ tipe: 'Pemasukan' }); setIsModalOpen(true); }} 
+          className="bg-white p-3 rounded-2xl shadow-sm border border-slate-100 flex flex-col items-center justify-center gap-2 hover:bg-slate-50 transition active:scale-95"
+        >
+          <div className="w-10 h-10 rounded-full bg-emerald-50 flex items-center justify-center text-emerald-500 text-lg">
+            <i className="fa-solid fa-plus"></i>
+          </div>
+          <span className="text-[10px] font-bold text-slate-600">Pemasukan</span>
+        </button>
+        <button 
+          onClick={() => { setOcrResult({ tipe: 'Pengeluaran' }); setIsModalOpen(true); }} 
+          className="bg-white p-3 rounded-2xl shadow-sm border border-slate-100 flex flex-col items-center justify-center gap-2 hover:bg-slate-50 transition active:scale-95"
+        >
+          <div className="w-10 h-10 rounded-full bg-rose-50 flex items-center justify-center text-rose-500 text-lg">
+            <i className="fa-solid fa-minus"></i>
+          </div>
+          <span className="text-[10px] font-bold text-slate-600">Pengeluaran</span>
+        </button>
+        <button 
+          onClick={() => setActiveTab('savings')} 
+          className="bg-white p-3 rounded-2xl shadow-sm border border-slate-100 flex flex-col items-center justify-center gap-2 hover:bg-slate-50 transition active:scale-95"
+        >
+          <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center text-blue-500 text-lg">
+            <i className="fa-solid fa-piggy-bank"></i>
+          </div>
+          <span className="text-[10px] font-bold text-slate-600">Tabungan</span>
+        </button>
+        <button 
+          onClick={() => setActiveTab('ai_assistant')} 
+          className="bg-white p-3 rounded-2xl shadow-sm border border-slate-100 flex flex-col items-center justify-center gap-2 hover:bg-slate-50 transition active:scale-95"
+        >
+          <div className="w-10 h-10 rounded-full bg-purple-50 flex items-center justify-center text-purple-500 text-lg">
+            <i className="fa-solid fa-robot"></i>
+          </div>
+          <span className="text-[10px] font-bold text-slate-600">Asisten AI</span>
+        </button>
+      </div>
+      
       {isModalOpen && (
         <TransactionModal 
           isOpen={isModalOpen} 
