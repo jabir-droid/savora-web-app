@@ -282,12 +282,12 @@ export default function Dashboard({ setActiveTab }) {
           </div>
           <div className="flex items-center gap-2.5 bg-white/5 border border-white/10 p-2 rounded-2xl">
             <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-savora-orange to-amber-400 flex items-center justify-center font-bold text-sm text-white uppercase">
-              {user?.email?.[0] || 'S'}
+              {user?.user_metadata?.display_name?.[0] || user?.email?.[0] || 'S'}
             </div>
             <div className="hidden sm:block text-left pr-2">
               <p className="text-[9px] text-slate-400">{t('dashboard.welcome')}</p>
               <p className="text-xs font-bold text-white leading-none truncate max-w-[100px]">
-                {user?.email?.split('@')[0] || t('dashboard.user_default')}
+                {user?.user_metadata?.display_name || user?.email?.split('@')[0] || t('dashboard.user_default')}
               </p>
             </div>
           </div>

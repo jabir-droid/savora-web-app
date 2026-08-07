@@ -23,6 +23,8 @@ export default function Settings() {
   const [accounts, setAccounts] = useState([])
   const [newPin, setNewPin] = useState('')
   const [newGroqKey, setNewGroqKey] = useState('')
+  const [displayName, setDisplayName] = useState('')
+  const [restoreJson, setRestoreJson] = useState('')
   const [isAddAccountOpen, setIsAddAccountOpen] = useState(false)
   const [editAccountTarget, setEditAccountTarget] = useState(null)
   const [showConnectModal, setShowConnectModal] = useState(false)
@@ -37,6 +39,11 @@ export default function Settings() {
       setNewGroqKey(s.groq_api_key || '')
     }
     if (accs) setAccounts(accs)
+    
+    const { data: { user } } = await supabase.auth.getUser()
+    if (user) {
+      setDisplayName(user.user_metadata?.display_name || '')
+    }
   }
 
   useEffect(() => {
@@ -176,11 +183,120 @@ export default function Settings() {
     }
   }
 
+  const handleSaveProfile = async () => {
+    try {
+      const { error } = await supabase.auth.updateUser({
+        data: { display_name: displayName }
+      })
+      if (error) throw error
+      showToast(t('settings.profile_save_success'), 'success')
+      triggerHaptic([50])
+    } catch (e) {
+      showToast(e.message, 'error')
+    }
+  }
+
+  const handleBackupJSON = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+      
+      const [tx, acc, cat, sav, cal] = await Promise.all([
+        supabase.from('transactions').select('*').eq('user_id', user.id),
+        supabase.from('accounts').select('*').eq('user_id', user.id),
+        supabase.from('categories').select('*').eq('user_id', user.id),
+        supabase.from('savings').select('*').eq('user_id', user.id),
+        supabase.from('calendar_notes').select('*').eq('user_id', user.id)
+      ])
+
+      const backupData = {
+        transactions: tx.data || [],
+        accounts: acc.data || [],
+        categories: cat.data || [],
+        savings: sav.data || [],
+        calendar_notes: cal.data || [],
+        settings: settings
+      }
+
+      const jsonStr = JSON.stringify(backupData, null, 2)
+      await navigator.clipboard.writeText(jsonStr)
+      showToast(t('settings.backup_success'), 'success')
+      triggerHaptic([50, 100, 50])
+    } catch (e) {
+      showToast(t('settings.backup_fail') + ': ' + e.message, 'error')
+    }
+  }
+
+  const handleRestoreJSON = async () => {
+    if (!restoreJson) return
+    try {
+      const data = JSON.parse(restoreJson)
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+      
+      const insertData = async (table, items) => {
+        if (!items || items.length === 0) return
+        const cleanItems = items.map(item => {
+           const { id, user_id, created_at, updated_at, ...rest } = item
+           return { ...rest, user_id: user.id }
+        })
+        await supabase.from(table).insert(cleanItems)
+      }
+
+      await insertData('accounts', data.accounts)
+      await insertData('categories', data.categories)
+      await insertData('savings', data.savings)
+      await insertData('transactions', data.transactions)
+      await insertData('calendar_notes', data.calendar_notes)
+
+      if (data.settings) {
+        // preserve current user settings except data
+        const { id, user_id, created_at, ...restSettings } = data.settings
+        await settingsService.updateSettings(restSettings)
+      }
+
+      showToast(t('settings.restore_success'), 'success')
+      setRestoreJson('')
+      loadData()
+      triggerHaptic([50, 100, 50])
+    } catch (e) {
+      showToast(t('settings.restore_fail'), 'error')
+    }
+  }
+
   return (
     <section className="space-y-6 animate-fade-in">
       <div className="mb-4">
         <h3 className="font-bold text-lg text-slate-800 mb-1">{t('settings.title')}</h3>
         <p className="text-xs text-slate-400">{t('settings.desc')}</p>
+      </div>
+
+      {/* Profil Pengguna */}
+      <div className="bg-white rounded-3xl p-6 shadow-sm border border-emerald-100 space-y-4">
+        <h3 className="text-xs font-bold text-emerald-600 uppercase tracking-wider mb-2 flex items-center gap-1.5 border-b border-slate-100 pb-2">
+          <i className="fa-solid fa-user"></i> {t('settings.profile') || 'Profil Pengguna'}
+        </h3>
+        <div className="flex flex-col gap-4 max-w-md">
+          <p className="text-xs text-slate-500">{t('settings.profile_desc') || 'Ubah nama tampilan Anda di aplikasi.'}</p>
+          <div className="flex flex-col gap-2">
+            <label className="text-xs font-bold text-slate-600">{t('settings.profile_name_label') || 'Nama Tampilan'}</label>
+            <div className="flex gap-2">
+              <input 
+                type="text" 
+                value={displayName} 
+                onChange={e => setDisplayName(e.target.value)}
+                placeholder="Nama Anda"
+                className="flex-1 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-emerald-500"
+              />
+              <button 
+                onClick={handleSaveProfile} 
+                className="bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-bold px-4 py-2 rounded-xl transition shadow"
+              >
+                {t('settings.profile_save') || 'Simpan'}
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
 
       <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-200/60 space-y-4">
@@ -228,6 +344,33 @@ export default function Settings() {
             <button onClick={handleArchive} className="bg-savora-orange text-white text-xs font-semibold px-4 py-2.5 rounded-xl hover:bg-orange-600 transition shadow hover:shadow-md cursor-pointer">
               <i className="fa-solid fa-box-archive mr-1.5"></i> {t('settings.btn_run_archive')}
             </button>
+          </div>
+        </div>
+
+        <div className="flex flex-col py-2 border-b border-slate-100/50 gap-4">
+          <div className="max-w-md">
+            <h4 className="font-bold text-sm text-emerald-600 flex items-center gap-2">{t('settings.backup_restore') || 'Backup & Restore Data'}</h4>
+            <p className="text-xs text-slate-400 mt-1">{t('settings.backup_restore_desc') || 'Salin atau pulihkan data Anda dalam format JSON. Berbeda dengan arsip, data Anda tidak akan dihapus.'}</p>
+          </div>
+          <div className="flex flex-col gap-3">
+            <button onClick={handleBackupJSON} className="self-start bg-emerald-500 text-white text-xs font-semibold px-4 py-2.5 rounded-xl hover:bg-emerald-600 transition shadow hover:shadow-md cursor-pointer">
+              <i className="fa-solid fa-copy mr-1.5"></i> {t('settings.btn_backup') || 'Salin Backup ke Clipboard'}
+            </button>
+            <div className="flex flex-col gap-2 mt-2">
+              <textarea 
+                value={restoreJson} 
+                onChange={e => setRestoreJson(e.target.value)}
+                placeholder={t('settings.restore_ph') || 'Tempel (Paste) JSON backup Anda di sini...'}
+                className="w-full h-24 border border-slate-200 rounded-xl p-3 text-xs focus:outline-none focus:border-emerald-500 font-mono bg-slate-50"
+              />
+              <button 
+                onClick={handleRestoreJSON} 
+                disabled={!restoreJson}
+                className="self-start bg-emerald-600 disabled:bg-slate-300 text-white text-xs font-semibold px-4 py-2.5 rounded-xl hover:bg-emerald-700 transition shadow cursor-pointer"
+              >
+                <i className="fa-solid fa-upload mr-1.5"></i> {t('settings.btn_restore') || 'Pulihkan Data'}
+              </button>
+            </div>
           </div>
         </div>
 
@@ -373,8 +516,38 @@ export default function Settings() {
       <ConnectBankModal
         isOpen={showConnectModal}
         onClose={() => setShowConnectModal(false)}
-        onSuccess={loadData}
+        onSuccess={(bankName) => {
+          const newBanks = [...connectedBanks, bankName]
+          handleUpdate('connected_banks', newBanks)
+          setShowConnectModal(false)
+        }}
       />
+      
+      {/* TENTANG SAVORA AI */}
+      <div className="mt-8 mb-4 bg-white rounded-3xl p-6 shadow-sm border border-savora-100 flex flex-col items-center justify-center text-center">
+        <div className="w-12 h-12 bg-savora-800 rounded-2xl flex items-center justify-center text-savora-orange shadow-lg shadow-savora-800/20 mb-4">
+          <i className="fa-solid fa-robot text-2xl"></i>
+        </div>
+        <h2 className="text-xl font-extrabold text-slate-800 tracking-tight">Savora AI</h2>
+        <p className="text-xs text-slate-500 mt-2 max-w-xs leading-relaxed">
+          {t('settings.about_desc') || 'Aplikasi pencatatan keuangan cerdas dengan integrasi AI (LLaMA 3) untuk analisis dan kemudahan Anda.'}
+        </p>
+        
+        <div className="w-full bg-slate-50 border border-slate-100 rounded-2xl p-4 mt-6 text-left space-y-3">
+          <div className="flex justify-between items-center border-b border-slate-200/60 pb-2">
+            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Versi</span>
+            <span className="text-xs font-bold text-slate-700">{t('settings.about_version') || '1.0.0 (AI Edition)'}</span>
+          </div>
+          <div className="flex justify-between items-center border-b border-slate-200/60 pb-2">
+            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Developer</span>
+            <span className="text-xs font-bold text-slate-700">{t('settings.about_dev') || 'Dikembangkan oleh Anda'}</span>
+          </div>
+          <div className="flex justify-between items-center">
+            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Mesin AI</span>
+            <span className="text-xs font-bold text-savora-orange bg-savora-orange/10 px-2 py-0.5 rounded-md">LLaMA 3 (Groq API)</span>
+          </div>
+        </div>
+      </div>
     </section>
   )
 }
