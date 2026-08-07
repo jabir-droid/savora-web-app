@@ -4,6 +4,7 @@ import { accountService } from '../../services/accountService'
 import { categoryService } from '../../services/categoryService'
 import { useToast } from '../../contexts/ToastContext'
 import { useLanguage } from '../../contexts/LanguageContext'
+import { triggerHaptic } from '../../utils/haptics'
 
 export default function TransactionModal({ isOpen, onClose, onSuccess, initialData }) {
   const { t } = useLanguage()
@@ -71,6 +72,7 @@ export default function TransactionModal({ isOpen, onClose, onSuccess, initialDa
         transferke: tipe === 'Transfer Kas' ? transferKe : null
       })
       showToast(t('modal_tx.success'), 'success')
+      triggerHaptic([50])
       onSuccess() // Memicu refresh dashboard
       onClose()
       

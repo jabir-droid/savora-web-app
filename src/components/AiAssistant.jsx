@@ -4,6 +4,7 @@ import { accountService } from '../services/accountService'
 import { formatCurrency } from '../utils/formatCurrency'
 import { useLanguage } from '../contexts/LanguageContext'
 import ConfirmModal from './modals/ConfirmModal'
+import { settingsService } from '../services/settingsService'
 
 export default function AiAssistant() {
   const { t } = useLanguage()
@@ -62,53 +63,100 @@ export default function AiAssistant() {
     setInput('')
     setIsTyping(true)
 
-    // Simulate AI response delay
+    // Mengirim ke API Groq jika tersedia
     setTimeout(async () => {
       let aiResponse = ""
-      if (currentMode === 'consult') {
-        const msg = userMsg.toLowerCase()
-        if (msg === 'tes' || msg === 'test' || msg.includes('halo') || msg.includes('hai ') || msg === 'hai' || msg.includes('hello')) {
-          aiResponse = "Halo! 👋 Ada yang bisa saya bantu terkait pencatatan pengeluaran, tabungan, atau fitur aplikasi Savora ini?"
-        } else if (msg.includes('investasi') || msg.includes('hemat') || msg.includes('nabung') || msg.includes('uang') || msg.includes('keuangan') || msg.includes('finansial') || msg.includes('gaji') || msg.includes('saldo')) {
-          aiResponse = t('ai.response_consult').replace('{msg}', userMsg)
-        } else {
-          aiResponse = "Mohon maaf, saya adalah Asisten AI Keuangan Savora. Saya hanya bisa membantu menjawab pertanyaan seputar finansial, tips hemat, investasi, atau panduan menggunakan aplikasi ini. Ada yang bisa saya bantu terkait hal tersebut? 😊"
+      try {
+        const s = await settingsService.getSettings()
+        if (!s || !s.groq_api_key) {
+           throw new Error(t('ai.no_api_key') || 'API Key Groq belum diatur di Pengaturan. AI tidak dapat merespon.')
         }
-      } else {
-        // Parsing logika NLP Sederhana: "beli kopi 50 ribu bca"
-        // Regex menangkap kata kunci: (Beli|Bayar|Pemasukan dll) (Deskripsi) (Nominal) (ribu/jt) (dompet)
-        const regex = /(beli|bayar|pengeluaran|dapat|terima|pemasukan)\s+(.*?)\s+(\d+(?:\.\d+)?)\s*(ribu|rb|juta|jt)?\s*(?:pakai|di|dari|ke)?\s*(.*)/i
-        const match = userMsg.match(regex)
-        
-        if (match) {
-          try {
-            const action = match[1].toLowerCase()
-            const desc = match[2].trim()
-            const amountRaw = parseFloat(match[3])
-            const multiplier = match[4]?.toLowerCase() || ''
-            const accountStr = match[5]?.trim() || 'Dompet Utama'
-            
-            let amount = amountRaw
-            if (multiplier === 'ribu' || multiplier === 'rb') amount *= 1000
-            if (multiplier === 'juta' || multiplier === 'jt') amount *= 1000000
 
-            const tipe = (action === 'dapat' || action === 'terima' || action === 'pemasukan') ? 'Pemasukan' : 'Pengeluaran'
+        if (currentMode === 'consult') {
+          const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${s.groq_api_key}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              model: 'llama-3.1-8b-instant',
+              messages: [
+                {
+                  role: 'system',
+                  content: 'Anda adalah Savora, Asisten AI Keuangan yang ramah, ahli mengatur keuangan, investasi, dan budgeting. Jawab dengan ringkas, jelas, dan gunakan bahasa Indonesia yang bersahabat.'
+                },
+                {
+                  role: 'user',
+                  content: userMsg
+                }
+              ],
+              temperature: 0.7,
+              max_tokens: 500
+            })
+          })
+
+          if (!response.ok) throw new Error('Gagal menghubungi AI Server')
+          const data = await response.json()
+          aiResponse = data.choices[0].message.content.trim()
+
+        } else {
+          // Mode Catat menggunakan NLP
+          const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${s.groq_api_key}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              model: 'llama-3.1-8b-instant',
+              messages: [
+                {
+                  role: 'system',
+                  content: `Ekstrak data transaksi dari input user. Kembalikan HANYA JSON object dengan format: {"action": "pemasukan" atau "pengeluaran", "desc": "deskripsi singkat", "amount": angka_nominal, "account": "nama akun (misal Dompet Utama)"}. Jika tidak bisa diekstrak, kembalikan {"error": "Tidak dimengerti"}. Jangan tambahkan teks lain. Contoh user: "Beli kopi 25rb pakai bca" -> {"action":"pengeluaran", "desc":"Beli Kopi", "amount":25000, "account":"bca"}`
+                },
+                {
+                  role: 'user',
+                  content: userMsg
+                }
+              ],
+              temperature: 0.1,
+              max_tokens: 150
+            })
+          })
+
+          if (!response.ok) throw new Error('Gagal menghubungi AI Server')
+          const data = await response.json()
+          const content = data.choices[0].message.content.trim()
+          
+          let parsed = null
+          const jsonStr = content.replace(/```json/g, '').replace(/```/g, '').trim()
+          try {
+            parsed = JSON.parse(jsonStr)
+          } catch (e) {
+            throw new Error('Format balasan AI tidak valid')
+          }
+
+          if (parsed.error) {
+             aiResponse = "Maaf, saya tidak mengerti maksud pencatatan tersebut. Mohon gunakan format yang lebih jelas (misal: 'Beli makan 50 ribu pakai cash')."
+          } else {
+            const tipe = parsed.action === 'pemasukan' ? 'Pemasukan' : 'Pengeluaran'
             const kategori = tipe === 'Pemasukan' ? 'Pendapatan AI' : 'Belanja AI'
-            
-            // Check if account exists, case-insensitive
+            const amount = Number(parsed.amount)
+            const desc = parsed.desc
+            const accountStr = parsed.account || 'Dompet Utama'
+
             const accounts = await accountService.getAccounts()
             let targetAccount = accounts.find(a => a.namaakun.toLowerCase() === accountStr.toLowerCase())
             
             let accountMsg = ""
             if (!targetAccount) {
-               // Create account if not exists
                const capitalizedAcc = accountStr.charAt(0).toUpperCase() + accountStr.slice(1)
                await accountService.createAccount(capitalizedAcc, 'CASH', 0)
                targetAccount = { namaakun: capitalizedAcc }
                accountMsg = t('ai.acc_created').replace('{account}', capitalizedAcc)
             }
 
-            // Save transaction
             await transactionService.addTransaction({
                tipe,
                kategori,
@@ -119,23 +167,20 @@ export default function AiAssistant() {
             })
             
             aiResponse = t('ai.response_catat_success')
-              .replace('{type}', tipe) // Already translated in language context if needed? Wait, 'tipe' here is 'Pemasukan' or 'Pengeluaran'. We should probably translate it.
               .replace('{type}', tipe === 'Pemasukan' ? t('tx.type_income') : t('tx.type_expense'))
               .replace('{amount}', formatCurrency(amount))
               .replace('{desc}', desc)
               .replace('{account}', targetAccount.namaakun)
               .replace('{accMsg}', accountMsg)
-          } catch (e) {
-            aiResponse = t('ai.response_catat_fail').replace('{error}', e.message)
           }
-        } else {
-          aiResponse = t('ai.response_catat_unknown')
         }
+      } catch (err) {
+        aiResponse = "Maaf, terjadi kesalahan: " + err.message
       }
 
       currentSetMessages(prev => [...prev, { sender: 'ai', text: aiResponse }])
       setIsTyping(false)
-    }, 1500)
+    }, 500)
   }
 
   return (

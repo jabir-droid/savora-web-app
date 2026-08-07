@@ -6,6 +6,7 @@ import AddContributionModal from './modals/AddContributionModal'
 import { useToast } from '../contexts/ToastContext'
 import { useLanguage } from '../contexts/LanguageContext'
 import { SkeletonCard, SkeletonList } from './SkeletonLoader'
+import { triggerHaptic } from '../utils/haptics'
 
 export default function Savings() {
   const { t } = useLanguage()
@@ -39,6 +40,7 @@ export default function Savings() {
     try {
       await savingService.deleteSavingGoal(id)
       showToast(t('savings.delete_success'), 'success')
+      triggerHaptic([50, 50])
       loadData()
     } catch (e) {
       showToast(t('savings.delete_fail') + e.message, 'error')

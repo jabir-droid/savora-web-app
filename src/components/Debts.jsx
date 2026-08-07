@@ -5,6 +5,7 @@ import { useLanguage } from '../contexts/LanguageContext'
 import { SkeletonCard, SkeletonList } from './SkeletonLoader'
 import { useToast } from '../contexts/ToastContext'
 import { formatCurrency } from '../utils/formatCurrency'
+import { triggerHaptic } from '../utils/haptics'
 
 export default function Debts() {
   const { t } = useLanguage()
@@ -64,6 +65,7 @@ export default function Debts() {
         tenggat_waktu: tenggatWaktu
       })
       showToast(t('debts.add_success'), 'success')
+      triggerHaptic([50])
       setIsModalOpen(false)
       loadDebts()
       // Reset form
@@ -81,6 +83,7 @@ export default function Debts() {
       try {
         await debtService.deleteDebt(id)
         showToast(t('debts.delete_success'), 'success')
+        triggerHaptic([50, 50])
         loadDebts()
       } catch (error) {
         showToast(t('debts.delete_fail'), 'error')
@@ -102,6 +105,7 @@ export default function Debts() {
       try {
         await debtService.payDebt(activeDebtToPay, numAmount, payAccount)
         showToast(t('debts.pay_success'), 'success')
+        triggerHaptic([50])
         setActiveDebtToPay(null)
         loadDebts()
       } catch (error) {

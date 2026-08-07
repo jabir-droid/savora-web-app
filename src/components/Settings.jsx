@@ -7,6 +7,7 @@ import AddAccountModal from './modals/AddAccountModal'
 import EditAccountModal from './modals/EditAccountModal'
 import ConnectBankModal from './modals/ConnectBankModal'
 import { useToast } from '../contexts/ToastContext'
+import { triggerHaptic } from '../utils/haptics'
 
 export default function Settings() {
   const { t } = useLanguage()
@@ -58,6 +59,12 @@ export default function Settings() {
     setSettings(updated)
     try {
       await settingsService.updateSettings({ [key]: value })
+      if (key === 'haptic_enabled' && value) {
+        // Test haptic immediately if turned on
+        if (typeof navigator !== 'undefined' && navigator.vibrate) navigator.vibrate([50, 100, 50])
+      } else {
+        triggerHaptic([30])
+      }
     } catch (e) {
       showToast(t('settings.up_fail') + e.message, 'error')
     }
@@ -69,6 +76,7 @@ export default function Settings() {
       await settingsService.updateSettings({ pin_code: newPin, is_pin_enabled: true })
       setSettings(prev => ({ ...prev, is_pin_enabled: true }))
       setNewPin('')
+      triggerHaptic([50])
       showToast(t('settings.pin_success'), 'success')
     } catch (e) {
       showToast(t('settings.pin_fail') + e.message, 'error')
@@ -79,6 +87,7 @@ export default function Settings() {
     try {
       await settingsService.updateSettings({ groq_api_key: newGroqKey })
       setSettings(prev => ({ ...prev, groq_api_key: newGroqKey }))
+      triggerHaptic([50])
       showToast(t('settings.groq_success'), 'success')
     } catch (e) {
       showToast(t('settings.groq_fail') + e.message, 'error')

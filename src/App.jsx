@@ -12,11 +12,13 @@ import Help from './components/Help'
 import Debts from './components/Debts'
 import TransactionModal from './components/modals/TransactionModal'
 import NotificationModal from './components/modals/NotificationModal'
+import PinLock from './components/PinLock'
 import { useAuth } from './contexts/AuthContext'
 import { useLanguage } from './contexts/LanguageContext'
 import { useToast } from './contexts/ToastContext'
 import { notificationService } from './services/notificationService'
 import { calendarService } from './services/calendarService'
+import { settingsService } from './services/settingsService'
 
 export default function App() {
   const [isLoginMode, setIsLoginMode] = useState(true)
@@ -31,6 +33,9 @@ export default function App() {
   const [isNotifModalOpen, setIsNotifModalOpen] = useState(false)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [transactionInitialData, setTransactionInitialData] = useState(null)
+  
+  const [isAppLocked, setIsAppLocked] = useState(false)
+  const [isSettingsLoaded, setIsSettingsLoaded] = useState(false)
   
   const { user, signIn, signUp, signOut } = useAuth()
   const { t, toggleLanguage } = useLanguage()
@@ -49,6 +54,14 @@ export default function App() {
     if (user) {
       checkDailyReminders()
       fetchUnreadCount()
+      
+      // Cek PIN Settings
+      settingsService.getSettings().then(s => {
+        if (s && s.is_pin_enabled) {
+          setIsAppLocked(true)
+        }
+        setIsSettingsLoaded(true)
+      })
     }
   }, [user, refreshTrigger])
 
@@ -173,6 +186,19 @@ export default function App() {
   const handleMenuClick = (tab) => {
     setActiveTab(tab)
     setIsMobileMenuOpen(false)
+  }
+
+  // Tampilan Menunggu Settings / Terkunci PIN
+  if (!isSettingsLoaded && user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-50 font-sans">
+        <div className="w-10 h-10 border-4 border-savora-200 border-t-savora-800 rounded-full animate-spin"></div>
+      </div>
+    )
+  }
+
+  if (isAppLocked && user) {
+    return <PinLock onUnlock={() => setIsAppLocked(false)} />
   }
 
   // Tampilan Utama (Persis sama seperti original Savora)
