@@ -327,9 +327,6 @@ export default function App() {
                 <span className="absolute -top-1 -right-1 w-3 h-3 bg-rose-500 border-2 border-slate-50 rounded-full animate-pulse"></span>
               )}
             </button>
-            <button onClick={() => setIsModalOpen(true)} className="bg-savora-orange text-white w-8 h-8 rounded-lg flex items-center justify-center shadow-md">
-              <i className="fa-solid fa-plus"></i>
-            </button>
           </div>
         </div>
 
