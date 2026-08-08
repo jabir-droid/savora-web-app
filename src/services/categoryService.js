@@ -1,4 +1,5 @@
 import { supabase } from '../supabaseClient'
+import { getDefaultCategories } from '../utils/categoryIcons'
 
 export const categoryService = {
   /**
@@ -19,7 +20,6 @@ export const categoryService = {
     }
 
     if (data.length === 0) {
-      const { getDefaultCategories } = await import('../utils/categoryIcons')
       const defaults = getDefaultCategories(user.id)
       
       const { data: insertedData, error: insertError } = await supabase

@@ -3,7 +3,8 @@ import { categoryService } from '../services/categoryService'
 import { formatCurrency } from '../utils/formatCurrency'
 import { useToast } from '../contexts/ToastContext'
 import { useLanguage } from '../contexts/LanguageContext'
-import { CATEGORY_ICONS } from '../utils/categoryIcons'
+import { CATEGORY_ICONS, getDefaultCategories } from '../utils/categoryIcons'
+import { supabase } from '../supabaseClient'
 
 export default function Categories() {
   const { t } = useLanguage()
@@ -42,6 +43,31 @@ export default function Categories() {
       setLimitAnggaran('')
     } catch (e) {
       showToast(t('cat.add_fail') + e.message, 'error')
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleLoadDefaults = async () => {
+    setIsLoading(true)
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      const defaults = getDefaultCategories(user.id)
+      
+      const missingDefaults = defaults.filter(def => 
+        !categories.find(c => c.namakategori.toLowerCase() === def.namakategori.toLowerCase())
+      )
+
+      if (missingDefaults.length > 0) {
+        const { error } = await supabase.from('categories').insert(missingDefaults)
+        if (error) throw error
+        showToast(`Berhasil memuat ${missingDefaults.length} kategori bawaan`, 'success')
+        loadData()
+      } else {
+        showToast('Semua kategori bawaan sudah tersedia', 'info')
+      }
+    } catch (e) {
+      showToast('Gagal memuat kategori: ' + e.message, 'error')
     } finally {
       setIsLoading(false)
     }
@@ -99,8 +125,20 @@ export default function Categories() {
         </div>
 
         <div className="lg:col-span-2 bg-white rounded-2xl p-6 shadow-sm border border-slate-200/60">
-          <h3 className="font-bold text-lg text-slate-800 mb-1">{t('cat.list_title')}</h3>
-          <p className="text-xs text-slate-400 mb-6">{t('cat.list_subtitle')}</p>
+          <div className="flex justify-between items-start mb-6">
+            <div>
+              <h3 className="font-bold text-lg text-slate-800 mb-1">{t('cat.list_title')}</h3>
+              <p className="text-xs text-slate-400">{t('cat.list_subtitle')}</p>
+            </div>
+            <button 
+              onClick={handleLoadDefaults}
+              disabled={isLoading}
+              className="text-xs bg-savora-100 text-savora-800 hover:bg-savora-200 px-3 py-1.5 rounded-lg font-bold transition flex items-center gap-2"
+            >
+              <i className="fa-solid fa-rotate-right"></i>
+              <span className="hidden sm:inline">Muat Bawaan</span>
+            </button>
+          </div>
 
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">

@@ -163,15 +163,20 @@ export default function TransactionModal({ isOpen, onClose, onSuccess, initialDa
                     )
                   })
                 ) : (
-                  <button 
-                    type="button"
-                    className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold bg-savora-800 text-white border border-savora-800 shadow-md col-span-2 md:col-span-3"
-                  >
-                    <div className="w-7 h-7 rounded-lg bg-white/20 flex items-center justify-center shrink-0 text-white">
-                      <i className="fa-solid fa-ellipsis"></i>
-                    </div>
-                    <span>{t('modal_tx.category_other')}</span>
-                  </button>
+                  <div className="col-span-2 md:col-span-3 bg-slate-50 border border-slate-200 border-dashed rounded-xl p-4 text-center">
+                    <p className="text-xs text-slate-500 mb-2">Belum ada kategori untuk {tipe === 'Pemasukan' ? t('tx.type_income') : t('tx.type_expense')}.</p>
+                    <button 
+                      type="button"
+                      onClick={() => {
+                        onClose()
+                        // Since we can't easily redirect, we just show toast/info
+                        alert('Silakan menuju halaman Pengaturan Kategori, lalu tekan tombol "Muat Bawaan" untuk memuat kategori standar.')
+                      }}
+                      className="text-xs font-bold bg-savora-800 text-white px-4 py-2 rounded-lg shadow-md hover:bg-slate-800 transition"
+                    >
+                      Buka Pengaturan Kategori
+                    </button>
+                  </div>
                 )}
               </div>
             </div>
