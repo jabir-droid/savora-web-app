@@ -17,6 +17,23 @@ export const categoryService = {
       console.error(error)
       return []
     }
+
+    if (data.length === 0) {
+      const { getDefaultCategories } = await import('../utils/categoryIcons')
+      const defaults = getDefaultCategories(user.id)
+      
+      const { data: insertedData, error: insertError } = await supabase
+        .from('categories')
+        .insert(defaults)
+        .select()
+        
+      if (insertError) {
+        console.error("Failed to seed categories:", insertError)
+        return []
+      }
+      return insertedData || []
+    }
+
     return data
   },
 

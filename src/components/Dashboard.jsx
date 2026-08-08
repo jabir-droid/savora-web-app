@@ -8,6 +8,7 @@ import { useToast } from '../contexts/ToastContext'
 import { settingsService } from '../services/settingsService'
 import TransactionModal from './modals/TransactionModal'
 import { SkeletonDashboardCard, SkeletonAccountList, SkeletonCard } from './SkeletonLoader'
+import { CATEGORY_ICONS } from '../utils/categoryIcons'
 
 export default function Dashboard({ setActiveTab }) {
   const { user } = useAuth()
@@ -477,7 +478,7 @@ export default function Dashboard({ setActiveTab }) {
                       <i className={`fa-solid ${tx.tipe === 'Pemasukan' ? 'fa-arrow-down' : tx.tipe === 'Pengeluaran' ? 'fa-arrow-up' : 'fa-right-left'}`}></i>
                     </div>
                     <div>
-                      <p className="font-bold text-sm text-slate-800">{tx.kategori}</p>
+                      <p className="font-bold text-sm text-slate-800">{CATEGORY_ICONS[tx.kategori]?.tKey ? t(CATEGORY_ICONS[tx.kategori].tKey) : tx.kategori}</p>
                       <div className="flex items-center gap-2 text-[10px] font-semibold text-slate-400 mt-0.5">
                         <span className="bg-slate-100 px-1.5 py-0.5 rounded text-slate-500">{tx.akun}</span>
                         <span>•</span>

@@ -5,6 +5,7 @@ import { formatCurrency } from '../utils/formatCurrency'
 import { SkeletonCard } from './SkeletonLoader'
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts'
 import { useLanguage } from '../contexts/LanguageContext'
+import { CATEGORY_ICONS } from '../utils/categoryIcons'
 
 const COLORS = ['#F97316', '#10b981', '#3b82f6', '#8b5cf6', '#ec4899', '#f43f5e']
 
@@ -186,11 +187,13 @@ export default function Statistics() {
                     <div className="w-full md:w-1/2 flex flex-col gap-3 max-h-full overflow-y-auto pr-2 no-scrollbar">
                       {breakdownData.categories.map((cat, i) => {
                         const pct = breakdownData.total > 0 ? (cat.value / breakdownData.total * 100).toFixed(1) : 0
+                        const iconData = CATEGORY_ICONS[cat.name]
+                        const displayName = iconData?.tKey ? t(iconData.tKey) : cat.name
                         return (
                           <div key={i} className="flex justify-between items-center p-2 rounded-lg hover:bg-slate-50 transition">
                             <div className="flex items-center gap-2">
                               <span className="w-3 h-3 rounded-full" style={{ backgroundColor: COLORS[i % COLORS.length] }}></span>
-                              <span className="text-sm font-semibold text-slate-700">{cat.name}</span>
+                              <span className="text-sm font-semibold text-slate-700">{displayName}</span>
                             </div>
                             <div className="text-right">
                               <p className="text-xs font-bold text-slate-800">{formatCurrency(cat.value)}</p>

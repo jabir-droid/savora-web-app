@@ -3,6 +3,7 @@ import { transactionService } from '../services/transactionService'
 import { formatCurrency } from '../utils/formatCurrency'
 import { useToast } from '../contexts/ToastContext'
 import { useLanguage } from '../contexts/LanguageContext'
+import { CATEGORY_ICONS } from '../utils/categoryIcons'
 import ConfirmModal from './modals/ConfirmModal'
 import { SkeletonList } from './SkeletonLoader'
 
@@ -225,7 +226,9 @@ export default function Transactions() {
                         {tx.tipe === 'Pemasukan' ? t('tx.type_income') : tx.tipe === 'Pengeluaran' ? t('tx.type_expense') : tx.tipe === 'Transfer' ? t('tx.type_transfer') : tx.tipe}
                       </span>
                     </td>
-                    <td className="py-3 px-4 font-semibold">{tx.kategori}</td>
+                    <td className="py-3 px-4 font-semibold">
+                      {CATEGORY_ICONS[tx.kategori]?.tKey ? t(CATEGORY_ICONS[tx.kategori].tKey) : tx.kategori}
+                    </td>
                     <td className="py-3 px-4">
                       <div className="font-medium text-slate-800">{tx.deskripsi || '-'}</div>
                       <div className="text-xs text-slate-400 mt-0.5">{tx.akun} {tx.transferke && `→ ${tx.transferke}`}</div>

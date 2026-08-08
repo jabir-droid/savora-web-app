@@ -5,6 +5,7 @@ import { categoryService } from '../../services/categoryService'
 import { useToast } from '../../contexts/ToastContext'
 import { useLanguage } from '../../contexts/LanguageContext'
 import { triggerHaptic } from '../../utils/haptics'
+import { CATEGORY_ICONS } from '../../utils/categoryIcons'
 
 export default function TransactionModal({ isOpen, onClose, onSuccess, initialData }) {
   const { t } = useLanguage()
@@ -138,30 +139,43 @@ export default function TransactionModal({ isOpen, onClose, onSuccess, initialDa
             </div>
           </div>
 
-          <div>
-            <label className="block text-xs text-slate-500 mb-2 font-semibold">{t('modal_tx.category_label')}</label>
-            <div className="flex overflow-x-auto gap-2 pb-2 no-scrollbar">
-              {categories.length > 0 ? (
-                categories.map(c => (
+          {tipe !== 'Tabungan' && tipe !== 'Transfer Kas' && (
+            <div>
+              <label className="block text-xs text-slate-500 mb-2 font-semibold">{t('modal_tx.category_label')}</label>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-2 pb-2">
+                {categories.filter(c => c.tipe === tipe).length > 0 ? (
+                  categories.filter(c => c.tipe === tipe).map(c => {
+                    const iconData = CATEGORY_ICONS[c.namakategori] || { icon: 'fa-tag', color: 'text-slate-500', bg: 'bg-slate-50', tKey: null }
+                    const displayName = iconData.tKey ? t(iconData.tKey) : c.namakategori
+                    
+                    return (
+                      <button 
+                        key={c.id} 
+                        type="button"
+                        onClick={() => setKategori(c.namakategori)}
+                        className={`flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold transition-all border ${kategori === c.namakategori ? 'bg-savora-800 text-white border-savora-800 shadow-md' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50 active:scale-95'}`}
+                      >
+                        <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${kategori === c.namakategori ? 'bg-white/20 text-white' : `${iconData.bg} ${iconData.color}`}`}>
+                          <i className={`fa-solid ${iconData.icon}`}></i>
+                        </div>
+                        <span className="truncate text-left">{displayName}</span>
+                      </button>
+                    )
+                  })
+                ) : (
                   <button 
-                    key={c.id} 
                     type="button"
-                    onClick={() => setKategori(c.namakategori)}
-                    className={`whitespace-nowrap px-4 py-1.5 rounded-full text-xs font-bold transition-all border ${kategori === c.namakategori ? 'bg-savora-800 text-white border-savora-800 shadow-md' : 'bg-white text-slate-500 border-slate-200 hover:bg-slate-50 active:scale-95'}`}
+                    className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold bg-savora-800 text-white border border-savora-800 shadow-md col-span-2 md:col-span-3"
                   >
-                    {c.namakategori}
+                    <div className="w-7 h-7 rounded-lg bg-white/20 flex items-center justify-center shrink-0 text-white">
+                      <i className="fa-solid fa-ellipsis"></i>
+                    </div>
+                    <span>{t('modal_tx.category_other')}</span>
                   </button>
-                ))
-              ) : (
-                <button 
-                  type="button"
-                  className="whitespace-nowrap px-4 py-1.5 rounded-full text-xs font-bold bg-savora-800 text-white border-savora-800 shadow-md"
-                >
-                  {t('modal_tx.category_other')}
-                </button>
-              )}
+                )}
+              </div>
             </div>
-          </div>
+          )}
 
           <div>
             <label className="block text-xs text-slate-500 mb-1 font-semibold">{t('modal_tx.desc_label')}</label>

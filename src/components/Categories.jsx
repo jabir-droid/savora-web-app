@@ -3,6 +3,7 @@ import { categoryService } from '../services/categoryService'
 import { formatCurrency } from '../utils/formatCurrency'
 import { useToast } from '../contexts/ToastContext'
 import { useLanguage } from '../contexts/LanguageContext'
+import { CATEGORY_ICONS } from '../utils/categoryIcons'
 
 export default function Categories() {
   const { t } = useLanguage()
@@ -114,9 +115,19 @@ export default function Categories() {
               <tbody className="divide-y divide-slate-100 text-sm text-slate-700">
                 {categories.length === 0 ? (
                   <tr><td colSpan="4" className="py-8 text-center text-slate-400">{t('cat.empty')}</td></tr>
-                ) : categories.map(cat => (
+                ) : categories.map(cat => {
+                  const iconData = CATEGORY_ICONS[cat.namakategori] || { icon: 'fa-tag', color: 'text-slate-500', bg: 'bg-slate-50', tKey: null }
+                  const displayName = iconData.tKey ? t(iconData.tKey) : cat.namakategori
+                  return (
                   <tr key={cat.id} className="hover:bg-slate-50 transition">
-                    <td className="py-3 px-4 font-semibold">{cat.namakategori}</td>
+                    <td className="py-3 px-4">
+                      <div className="flex items-center gap-3">
+                        <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 ${iconData.bg} ${iconData.color}`}>
+                          <i className={`fa-solid ${iconData.icon}`}></i>
+                        </div>
+                        <span className="font-semibold">{displayName}</span>
+                      </div>
+                    </td>
                     <td className="py-3 px-4">
                       <span className={`px-2 py-1 text-[10px] font-bold rounded-full ${cat.tipe === 'Pemasukan' ? 'bg-emerald-50 text-emerald-600' : cat.tipe === 'Pengeluaran' ? 'bg-rose-50 text-rose-600' : 'bg-savora-orange/10 text-savora-orange'}`}>
                         {cat.tipe}
@@ -129,7 +140,8 @@ export default function Categories() {
                       </button>
                     </td>
                   </tr>
-                ))}
+                  )
+                })}
               </tbody>
             </table>
           </div>
