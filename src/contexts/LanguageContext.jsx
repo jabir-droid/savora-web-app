@@ -226,6 +226,7 @@ const translations = {
     'cat.default_investasi': 'Investasi',
     'cat.default_bonus': 'Bonus',
     'cat.default_lainnya': 'Lainnya',
+    'cat.default_lainnya_in': 'Lain-lain',
 
     // Statistics.jsx
     'stat.tab_cashflow': 'Aliran Kas',
@@ -753,6 +754,7 @@ const translations = {
     'cat.default_investasi': 'Investment',
     'cat.default_bonus': 'Bonus',
     'cat.default_lainnya': 'Others',
+    'cat.default_lainnya_in': 'Others',
 
     // Statistics.jsx
     'stat.tab_cashflow': 'Cashflow',

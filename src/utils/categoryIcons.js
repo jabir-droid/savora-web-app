@@ -12,7 +12,8 @@ export const CATEGORY_ICONS = {
   'Gaji': { icon: 'fa-money-bill-wave', color: 'text-emerald-500', bg: 'bg-emerald-50', tKey: 'cat.default_gaji' },
   'Usaha': { icon: 'fa-store', color: 'text-orange-500', bg: 'bg-orange-50', tKey: 'cat.default_usaha' },
   'Investasi': { icon: 'fa-chart-line', color: 'text-blue-500', bg: 'bg-blue-50', tKey: 'cat.default_investasi' },
-  'Bonus': { icon: 'fa-gift', color: 'text-amber-500', bg: 'bg-amber-50', tKey: 'cat.default_bonus' }
+  'Bonus': { icon: 'fa-gift', color: 'text-amber-500', bg: 'bg-amber-50', tKey: 'cat.default_bonus' },
+  'Lain-lain': { icon: 'fa-ellipsis', color: 'text-slate-500', bg: 'bg-slate-50', tKey: 'cat.default_lainnya_in' }
 }
 
 export const getDefaultCategories = (userId) => [
@@ -30,5 +31,5 @@ export const getDefaultCategories = (userId) => [
   { user_id: userId, namakategori: 'Usaha', tipe: 'Pemasukan' },
   { user_id: userId, namakategori: 'Investasi', tipe: 'Pemasukan' },
   { user_id: userId, namakategori: 'Bonus', tipe: 'Pemasukan' },
-  { user_id: userId, namakategori: 'Lainnya', tipe: 'Pemasukan' }
+  { user_id: userId, namakategori: 'Lain-lain', tipe: 'Pemasukan' }
 ]
