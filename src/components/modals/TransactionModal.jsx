@@ -6,6 +6,7 @@ import { useToast } from '../../contexts/ToastContext'
 import { useLanguage } from '../../contexts/LanguageContext'
 import { triggerHaptic } from '../../utils/haptics'
 import { CATEGORY_ICONS } from '../../utils/categoryIcons'
+import { formatNumberInput, parseNumberInput } from '../../utils/formatCurrency'
 
 export default function TransactionModal({ isOpen, onClose, onSuccess, initialData }) {
   const { t } = useLanguage()
@@ -25,7 +26,7 @@ export default function TransactionModal({ isOpen, onClose, onSuccess, initialDa
     if (isOpen) {
       loadData()
       if (initialData) {
-        if (initialData.jumlah) setJumlah(initialData.jumlah.toString())
+        if (initialData.jumlah) setJumlah(formatNumberInput(initialData.jumlah))
         if (initialData.deskripsi) setDeskripsi(initialData.deskripsi)
         if (initialData.tipe) setTipe(initialData.tipe)
       } else {
@@ -67,7 +68,7 @@ export default function TransactionModal({ isOpen, onClose, onSuccess, initialDa
       await transactionService.addTransaction({
         tipe: tipe === 'Tabungan' ? 'Pengeluaran' : (tipe === 'Transfer Kas' ? 'Transfer' : tipe),
         kategori: tipe === 'Tabungan' ? 'Tabungan' : kategori,
-        jumlah: Number(jumlah.replace(/\D/g, '')),
+        jumlah: parseNumberInput(jumlah),
         deskripsi,
         akun,
         transferke: tipe === 'Transfer Kas' ? transferKe : null
@@ -132,7 +133,7 @@ export default function TransactionModal({ isOpen, onClose, onSuccess, initialDa
             <label className="block text-xs text-slate-500 mb-1 font-semibold">{t('modal_tx.amount_label')}</label>
             <div className="relative">
               <span className="absolute left-3 top-2.5 font-bold text-slate-400 text-sm">{localStorage.getItem('savora_currency') === 'USD' ? '$' : 'Rp'}</span>
-              <input type="number" required value={jumlah} onChange={e => setJumlah(e.target.value)}
+              <input type="text" inputMode="numeric" required value={jumlah} onChange={e => setJumlah(formatNumberInput(e.target.value))}
                 placeholder={t('modal_tx.amount_ph')}
                 className="w-full border-2 border-slate-200 rounded-xl px-3 py-2 text-base font-bold text-slate-800 focus:outline-none focus:border-savora-800 pl-10 transition-all duration-300"
               />

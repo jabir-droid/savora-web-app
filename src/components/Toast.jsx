@@ -32,8 +32,8 @@ export default function Toast({ toast, onRemove }) {
 
   return (
     <div
-      className={`pointer-events-auto flex items-start gap-3 bg-white p-4 rounded-xl shadow-lg border border-slate-100 min-w-[300px] max-w-sm transition-all duration-300 transform ${
-        isVisible ? 'translate-x-0 opacity-100 scale-100' : 'translate-x-8 opacity-0 scale-95'
+      className={`pointer-events-auto flex items-start gap-3 bg-white p-4 rounded-xl shadow-lg border border-slate-100 min-w-[300px] w-full md:w-auto md:min-w-[300px] max-w-sm transition-all duration-300 transform ${
+        isVisible ? 'translate-y-0 md:translate-x-0 opacity-100 scale-100' : '-translate-y-4 md:-translate-y-0 md:translate-x-8 opacity-0 scale-95'
       }`}
     >
       <div className="shrink-0 mt-0.5">{getIcon()}</div>

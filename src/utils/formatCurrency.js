@@ -16,3 +16,16 @@ export const formatCurrency = (number) => {
     maximumFractionDigits: 0
   }).format(number || 0)
 }
+
+export const formatNumberInput = (value) => {
+  if (value === undefined || value === null) return ''
+  const val = value.toString().replace(/\D/g, '')
+  if (!val) return ''
+  return parseInt(val, 10).toLocaleString('id-ID')
+}
+
+export const parseNumberInput = (value) => {
+  if (value === undefined || value === null) return 0
+  const val = value.toString().replace(/\D/g, '')
+  return val ? parseInt(val, 10) : 0
+}
