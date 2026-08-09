@@ -3,6 +3,7 @@ import { savingService } from '../../services/savingService'
 import { accountService } from '../../services/accountService'
 import { useToast } from '../../contexts/ToastContext'
 import { useLanguage } from '../../contexts/LanguageContext'
+import { formatNumberInput, parseNumberInput } from '../../utils/formatCurrency'
 
 export default function AddContributionModal({ isOpen, onClose, onSuccess, saving }) {
   const { t } = useLanguage()
@@ -36,7 +37,7 @@ export default function AddContributionModal({ isOpen, onClose, onSuccess, savin
     e.preventDefault()
     setIsLoading(true)
     
-    const setorAmount = Number(nominal.replace(/\D/g, ''))
+    const setorAmount = parseNumberInput(nominal)
     
     // VALIDASI SALDO
     const sourceAcc = accounts.find(a => a.namaakun === akunSumber)
@@ -81,7 +82,7 @@ export default function AddContributionModal({ isOpen, onClose, onSuccess, savin
             <label className="block text-xs text-slate-500 mb-1 font-semibold">{t('modal_contrib.amount_lbl')}</label>
             <div className="relative">
               <span className="absolute left-3 top-2.5 font-bold text-slate-400 text-sm">Rp</span>
-              <input type="number" required value={nominal} onChange={e => setNominal(e.target.value)}
+              <input type="text" inputMode="numeric" required value={nominal} onChange={e => setNominal(formatNumberInput(e.target.value))}
                 placeholder={t('modal_contrib.amount_ph')}
                 className="w-full border-2 border-slate-200 rounded-xl px-3 py-2 text-base font-bold text-slate-800 focus:outline-none focus:border-savora-800 pl-10 transition-all duration-300"
               />

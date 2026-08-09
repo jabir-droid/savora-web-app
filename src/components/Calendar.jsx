@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react'
 import { transactionService } from '../services/transactionService'
 import { calendarService } from '../services/calendarService'
-import { formatCurrency } from '../utils/formatCurrency'
+import { formatCurrency, formatNumberInput, parseNumberInput } from '../utils/formatCurrency'
 import { useLanguage } from '../contexts/LanguageContext'
 
 export default function Calendar() {
@@ -86,8 +86,9 @@ export default function Calendar() {
   }
 
   const handleLimitChange = (e) => {
-    setDailyLimit(e.target.value)
-    saveDayData({ daily_limit: e.target.value ? Number(e.target.value) : null })
+    const formatted = formatNumberInput(e.target.value)
+    setDailyLimit(formatted)
+    saveDayData({ daily_limit: formatted ? parseNumberInput(formatted) : null })
   }
 
   const addReminder = () => {
@@ -251,8 +252,9 @@ export default function Calendar() {
               <label className="text-xs font-bold text-slate-400 flex items-center gap-2"><i className="fa-solid fa-bullseye text-emerald-400"></i> {t('cal.budget_limit')}</label>
               <div className="relative">
                 <input 
-                  type="number" 
-                  value={dailyLimit}
+                  type="text" 
+                  inputMode="numeric"
+                  value={formatNumberInput(dailyLimit)}
                   onChange={handleLimitChange}
                   placeholder={t('cal.budget_limit_ph')}
                   className="w-full bg-slate-900/50 border border-slate-700 rounded-xl p-2.5 text-sm focus:outline-none focus:border-emerald-500 pl-8"

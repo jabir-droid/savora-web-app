@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import { savingService } from '../../services/savingService'
 import { useToast } from '../../contexts/ToastContext'
 import { useLanguage } from '../../contexts/LanguageContext'
+import { formatNumberInput, parseNumberInput } from '../../utils/formatCurrency'
 
 export default function AddSavingGoalModal({ isOpen, onClose, onSuccess }) {
   const { t } = useLanguage()
@@ -26,8 +27,8 @@ export default function AddSavingGoalModal({ isOpen, onClose, onSuccess }) {
       
       await savingService.addSavingGoal({
         namatarget,
-        targetjumlah: Number(targetjumlah),
-        terkumpul: Number(terkumpul),
+        targetjumlah: parseNumberInput(targetjumlah),
+        terkumpul: parseNumberInput(terkumpul),
         tenggatwaktu,
         kategori: finalKategori,
         jadwalrutin,
@@ -74,7 +75,7 @@ export default function AddSavingGoalModal({ isOpen, onClose, onSuccess }) {
 
           <div>
             <label className="block text-xs text-slate-500 mb-1 font-semibold">{t('modal_sg.amount_label')}</label>
-            <input type="number" required value={targetjumlah} onChange={e => setTargetjumlah(e.target.value)}
+            <input type="text" inputMode="numeric" required value={targetjumlah} onChange={e => setTargetjumlah(formatNumberInput(e.target.value))}
               placeholder={t('modal_sg.amount_ph')}
               className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-savora-800" />
           </div>
@@ -99,7 +100,7 @@ export default function AddSavingGoalModal({ isOpen, onClose, onSuccess }) {
 
           <div>
             <label className="block text-xs text-slate-500 mb-1 font-semibold">{t('modal_sg.init_balance_label')}</label>
-            <input type="number" value={terkumpul} onChange={e => setTerkumpul(e.target.value)}
+            <input type="text" inputMode="numeric" value={terkumpul} onChange={e => setTerkumpul(formatNumberInput(e.target.value))}
               className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-savora-800" />
           </div>
 

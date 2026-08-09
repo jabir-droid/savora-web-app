@@ -4,7 +4,7 @@ import { accountService } from '../services/accountService'
 import { useLanguage } from '../contexts/LanguageContext'
 import { SkeletonCard, SkeletonList } from './SkeletonLoader'
 import { useToast } from '../contexts/ToastContext'
-import { formatCurrency } from '../utils/formatCurrency'
+import { formatCurrency, formatNumberInput, parseNumberInput } from '../utils/formatCurrency'
 import { triggerHaptic } from '../utils/haptics'
 
 export default function Debts() {
@@ -60,7 +60,7 @@ export default function Debts() {
       await debtService.addDebt({
         nama_pihak: namaPihak,
         tipe,
-        jumlah: Number(jumlah.replace(/\D/g, '')),
+        jumlah: parseNumberInput(jumlah),
         keterangan,
         tenggat_waktu: tenggatWaktu
       })
@@ -100,7 +100,7 @@ export default function Debts() {
     e.preventDefault()
     if (!activeDebtToPay) return
     
-    const numAmount = Number(payAmount.replace(/\D/g, ''))
+    const numAmount = parseNumberInput(payAmount)
     if (!isNaN(numAmount) && numAmount > 0) {
       try {
         await debtService.payDebt(activeDebtToPay, numAmount, payAccount)
@@ -280,7 +280,7 @@ export default function Debts() {
 
               <div>
                 <label className="block text-xs font-bold text-slate-500 mb-1">{t('debts.modal_amount')}</label>
-                <input required type="number" value={jumlah} onChange={e => setJumlah(e.target.value)} className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:border-savora-800 outline-none" placeholder={t('debts.modal_amount_ph')} />
+                <input required type="text" inputMode="numeric" value={jumlah} onChange={e => setJumlah(formatNumberInput(e.target.value))} className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:border-savora-800 outline-none" placeholder={t('debts.modal_amount_ph')} />
               </div>
 
               <div>
@@ -319,7 +319,7 @@ export default function Debts() {
 
               <div>
                 <label className="block text-xs font-bold text-slate-500 mb-1">{t('debts.modal_pay_amount')}</label>
-                <input required type="number" value={payAmount} onChange={e => setPayAmount(e.target.value)} className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:border-savora-800 outline-none" placeholder={t('debts.modal_amount_ph')} />
+                <input required type="text" inputMode="numeric" value={payAmount} onChange={e => setPayAmount(formatNumberInput(e.target.value))} className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:border-savora-800 outline-none" placeholder={t('debts.modal_amount_ph')} />
               </div>
 
               <div>

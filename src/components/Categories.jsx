@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { categoryService } from '../services/categoryService'
-import { formatCurrency } from '../utils/formatCurrency'
+import { formatCurrency, formatNumberInput, parseNumberInput } from '../utils/formatCurrency'
 import { useToast } from '../contexts/ToastContext'
 import { useLanguage } from '../contexts/LanguageContext'
 import { CATEGORY_ICONS, getDefaultCategories } from '../utils/categoryIcons'
@@ -35,7 +35,7 @@ export default function Categories() {
       await categoryService.addCategory({
         namakategori,
         tipe,
-        limit_anggaran: limitAnggaran ? Number(limitAnggaran) : null
+        limit_anggaran: limitAnggaran ? parseNumberInput(limitAnggaran) : null
       })
       showToast(t('cat.add_success'), 'success')
       loadData()
@@ -114,7 +114,7 @@ export default function Categories() {
               <label className="block text-xs text-slate-400 mb-1 font-semibold">
                 {t('cat.label_limit')} <span className="text-[10px] text-slate-500 font-normal">{t('cat.label_optional')}</span>
               </label>
-              <input type="number" value={limitAnggaran} onChange={e => setLimitAnggaran(e.target.value)} placeholder={t('cat.placeholder_limit')}
+              <input type="text" inputMode="numeric" value={limitAnggaran} onChange={e => setLimitAnggaran(formatNumberInput(e.target.value))} placeholder={t('cat.placeholder_limit')}
                 className="w-full bg-slate-900/50 border border-slate-700 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-emerald-500 text-white" />
             </div>
             <button type="submit" disabled={isLoading}

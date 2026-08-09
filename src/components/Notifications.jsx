@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { notificationService } from '../services/notificationService'
 import { useToast } from '../contexts/ToastContext'
 import { useLanguage } from '../contexts/LanguageContext'
-import { formatCurrency } from '../utils/formatCurrency'
+import { formatCurrency, formatNumberInput, parseNumberInput } from '../utils/formatCurrency'
 import ConfirmModal from './modals/ConfirmModal'
 
 export default function Notifications({ onOpenTransaction, onMarkAsRead }) {
@@ -62,7 +62,7 @@ export default function Notifications({ onOpenTransaction, onMarkAsRead }) {
 
   const handleThresholdBlur = async () => {
     try {
-      await notificationService.updateSettings({ notif_critical_threshold: Number(prefs.notif_critical_threshold) })
+      await notificationService.updateSettings({ notif_critical_threshold: parseNumberInput(prefs.notif_critical_threshold) })
       showToast(t('notif.limit_success'), 'success')
     } catch (e) {
       console.error(e)
@@ -219,7 +219,7 @@ export default function Notifications({ onOpenTransaction, onMarkAsRead }) {
                 <label className="block text-xs text-slate-300 font-semibold">{t('notif.cfg_critical_min')}</label>
                 <div className="relative">
                   <span className="absolute left-3 top-2 font-bold text-slate-400 text-xs">{localStorage.getItem('savora_currency') === 'USD' ? '$' : 'Rp'}</span>
-                  <input type="number" value={prefs.notif_critical_threshold} onChange={e => setPrefs({...prefs, notif_critical_threshold: e.target.value})} onBlur={handleThresholdBlur} placeholder="1000000"
+                  <input type="text" inputMode="numeric" value={formatNumberInput(prefs.notif_critical_threshold)} onChange={e => setPrefs({...prefs, notif_critical_threshold: formatNumberInput(e.target.value)})} onBlur={handleThresholdBlur} placeholder="1000000"
                     className="w-full bg-slate-900/50 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-white font-bold focus:outline-none focus:border-emerald-500 pl-8 transition" />
                 </div>
               </div>
