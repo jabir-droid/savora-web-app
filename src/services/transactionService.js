@@ -147,6 +147,46 @@ export const transactionService = {
   },
 
   /**
+   * Memperbarui transaksi berdasarkan ID
+   */
+  async updateTransaction(id, oldTx, newTx) {
+    // 1. Revert old transaction balances
+    await accountService.updateAccountBalance(oldTx.akun, oldTx.tipe === 'Pemasukan' ? 'Pengeluaran' : 'Pemasukan', oldTx.jumlah)
+    if (oldTx.tipe === 'Transfer' && oldTx.transferke) {
+      await accountService.updateAccountBalance(oldTx.transferke, 'Pengeluaran', oldTx.jumlah)
+    }
+
+    // 2. Update transaction row
+    const updateData = {
+      tipe: newTx.tipe,
+      kategori: newTx.kategori,
+      jumlah: newTx.jumlah,
+      deskripsi: newTx.deskripsi,
+      akun: newTx.akun,
+      transferke: newTx.transferke || null
+    }
+    if (newTx.tanggal) {
+      updateData.created_at = newTx.tanggal
+    }
+    
+    const { data, error } = await supabase
+      .from('transactions')
+      .update(updateData)
+      .eq('id', id)
+      .select()
+      
+    if (error) throw error
+
+    // 3. Apply new transaction balances
+    await accountService.updateAccountBalance(newTx.akun, newTx.tipe, newTx.jumlah)
+    if (newTx.tipe === 'Transfer' && newTx.transferke) {
+      await accountService.updateAccountBalance(newTx.transferke, 'Pemasukan', newTx.jumlah)
+    }
+    
+    return data
+  },
+
+  /**
    * Menghapus transaksi berdasarkan ID
    */
   async deleteTransaction(id, tipe, jumlah, akun, transferke) {

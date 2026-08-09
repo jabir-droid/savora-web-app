@@ -5,6 +5,7 @@ import { useToast } from '../contexts/ToastContext'
 import { useLanguage } from '../contexts/LanguageContext'
 import { CATEGORY_ICONS } from '../utils/categoryIcons'
 import ConfirmModal from './modals/ConfirmModal'
+import TransactionModal from './modals/TransactionModal'
 import { SkeletonList } from './SkeletonLoader'
 
 export default function Transactions() {
@@ -14,6 +15,7 @@ export default function Transactions() {
   const [isLoading, setIsLoading] = useState(true)
   const [isDeleting, setIsDeleting] = useState(false)
   const [confirmModal, setConfirmModal] = useState({ isOpen: false, item: null })
+  const [editModal, setEditModal] = useState({ isOpen: false, item: null })
 
   // Filters
   const [search, setSearch] = useState('')
@@ -240,9 +242,14 @@ export default function Transactions() {
                       {tx.tipe === 'Pemasukan' ? '+' : tx.tipe === 'Pengeluaran' ? '-' : ''} {formatCurrency(tx.jumlah)}
                     </td>
                     <td className="py-3 px-4 text-center">
-                      <button onClick={() => setConfirmModal({ isOpen: true, item: tx })} disabled={isDeleting} className="bg-rose-50 hover:bg-rose-100 text-rose-600 w-8 h-8 rounded-xl flex items-center justify-center transition disabled:opacity-50" title={t('tx.delete')}>
-                        <i className="fa-solid fa-trash"></i>
-                      </button>
+                      <div className="flex items-center justify-center gap-2">
+                        <button onClick={() => setEditModal({ isOpen: true, item: tx })} disabled={isDeleting} className="bg-blue-50 hover:bg-blue-100 text-blue-600 w-8 h-8 rounded-xl flex items-center justify-center transition disabled:opacity-50" title="Edit">
+                          <i className="fa-solid fa-pen"></i>
+                        </button>
+                        <button onClick={() => setConfirmModal({ isOpen: true, item: tx })} disabled={isDeleting} className="bg-rose-50 hover:bg-rose-100 text-rose-600 w-8 h-8 rounded-xl flex items-center justify-center transition disabled:opacity-50" title={t('tx.delete')}>
+                          <i className="fa-solid fa-trash"></i>
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))
@@ -273,9 +280,14 @@ export default function Transactions() {
                      </span>
                      <span className="text-xs font-semibold text-slate-600">{tx.kategori}</span>
                    </div>
-                   <button onClick={() => setConfirmModal({ isOpen: true, item: tx })} disabled={isDeleting} className="text-rose-400 hover:text-rose-600 p-1" title={t('tx.delete')}>
-                     <i className="fa-solid fa-trash text-sm"></i>
-                   </button>
+                   <div className="flex items-center gap-2">
+                     <button onClick={() => setEditModal({ isOpen: true, item: tx })} disabled={isDeleting} className="text-blue-400 hover:text-blue-600 p-1" title="Edit">
+                       <i className="fa-solid fa-pen text-sm"></i>
+                     </button>
+                     <button onClick={() => setConfirmModal({ isOpen: true, item: tx })} disabled={isDeleting} className="text-rose-400 hover:text-rose-600 p-1" title={t('tx.delete')}>
+                       <i className="fa-solid fa-trash text-sm"></i>
+                     </button>
+                   </div>
                  </div>
                  
                  <div>
@@ -307,6 +319,18 @@ export default function Transactions() {
         confirmText="Hapus"
         cancelText="Batal"
       />
+
+      {editModal.isOpen && (
+        <TransactionModal 
+          isOpen={editModal.isOpen} 
+          onClose={() => setEditModal({ isOpen: false, item: null })} 
+          onSuccess={() => {
+            setEditModal({ isOpen: false, item: null })
+            loadData()
+          }}
+          initialData={editModal.item}
+        />
+      )}
     </section>
   )
 }

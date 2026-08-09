@@ -25,11 +25,11 @@ export default function TransactionModal({ isOpen, onClose, onSuccess, initialDa
 
   useEffect(() => {
     if (isOpen) {
-      loadData()
+      loadData(initialData)
       if (initialData) {
         if (initialData.jumlah) setJumlah(formatNumberInput(initialData.jumlah))
         if (initialData.deskripsi) setDeskripsi(initialData.deskripsi)
-        if (initialData.tipe) setTipe(initialData.tipe)
+        if (initialData.tipe) setTipe(initialData.tipe === 'Transfer' ? 'Transfer Kas' : initialData.tipe)
         if (initialData.created_at) {
           const d = new Date(initialData.created_at)
           const tz = d.getTimezoneOffset() * 60000
@@ -50,7 +50,7 @@ export default function TransactionModal({ isOpen, onClose, onSuccess, initialDa
     }
   }, [isOpen, initialData])
 
-  const loadData = async () => {
+  const loadData = async (initData = null) => {
     try {
       const [accData, catData] = await Promise.all([
         accountService.getAccounts(),
@@ -59,15 +59,15 @@ export default function TransactionModal({ isOpen, onClose, onSuccess, initialDa
       
       setAccounts(accData)
       if (accData.length > 0) {
-        setAkun(accData[0].namaakun)
-        setTransferKe(accData.length > 1 ? accData[1].namaakun : accData[0].namaakun)
+        setAkun(initData?.akun || accData[0].namaakun)
+        setTransferKe(initData?.transferke || (accData.length > 1 ? accData[1].namaakun : accData[0].namaakun))
       }
 
       setCategories(catData)
       if (catData.length > 0) {
-        setKategori(catData[0].namakategori)
+        setKategori(initData?.kategori || catData[0].namakategori)
       } else {
-        setKategori('Lainnya') // Fallback
+        setKategori(initData?.kategori || 'Lainnya') // Fallback
       }
     } catch (e) {
       console.error(e)
@@ -78,7 +78,7 @@ export default function TransactionModal({ isOpen, onClose, onSuccess, initialDa
     e.preventDefault()
     setIsLoading(true)
     try {
-      await transactionService.addTransaction({
+      const payload = {
         tipe: tipe === 'Tabungan' ? 'Pengeluaran' : (tipe === 'Transfer Kas' ? 'Transfer' : tipe),
         kategori: tipe === 'Tabungan' ? 'Tabungan' : kategori,
         jumlah: parseNumberInput(jumlah),
@@ -86,8 +86,15 @@ export default function TransactionModal({ isOpen, onClose, onSuccess, initialDa
         akun,
         transferke: tipe === 'Transfer Kas' ? transferKe : null,
         tanggal: new Date(tanggal).toISOString()
-      })
-      showToast(t('modal_tx.success'), 'success')
+      }
+
+      if (initialData && initialData.id) {
+        await transactionService.updateTransaction(initialData.id, initialData, payload)
+        showToast("Transaksi berhasil diperbarui!", 'success')
+      } else {
+        await transactionService.addTransaction(payload)
+        showToast(t('modal_tx.success'), 'success')
+      }
       triggerHaptic([50])
       onSuccess() // Memicu refresh dashboard
       onClose()
@@ -109,7 +116,9 @@ export default function TransactionModal({ isOpen, onClose, onSuccess, initialDa
       <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl transform transition-transform duration-300 max-h-[90vh] overflow-y-auto">
         
         <div className="flex justify-between items-center mb-6">
-          <h3 className="font-extrabold text-xl text-slate-800">{t('modal_tx.title_new')}</h3>
+          <h3 className="font-extrabold text-xl text-slate-800">
+            {initialData && initialData.id ? "Edit Transaksi" : t('modal_tx.title_new')}
+          </h3>
           <button onClick={onClose} className="p-1.5 text-slate-400 hover:text-slate-600 rounded-xl transition">
             <i className="fa-solid fa-xmark text-lg"></i>
           </button>
@@ -236,7 +245,7 @@ export default function TransactionModal({ isOpen, onClose, onSuccess, initialDa
 
           <button disabled={isLoading} type="submit"
             className="w-full bg-savora-800 hover:bg-savora-900 text-white font-bold py-3 rounded-xl shadow-lg shadow-savora-800/20 active:scale-95 transition mt-4">
-            {isLoading ? t('modal_tx.btn_saving') : t('modal_tx.btn_save')}
+            {isLoading ? t('modal_tx.btn_saving') : (initialData && initialData.id ? "Simpan Perubahan" : t('modal_tx.btn_save'))}
           </button>
         </form>
       </div>
