@@ -17,6 +17,7 @@ export default function TransactionModal({ isOpen, onClose, onSuccess, initialDa
   const [deskripsi, setDeskripsi] = useState('')
   const [akun, setAkun] = useState('')
   const [transferKe, setTransferKe] = useState('')
+  const [tanggal, setTanggal] = useState('')
   
   const [accounts, setAccounts] = useState([])
   const [categories, setCategories] = useState([])
@@ -29,10 +30,22 @@ export default function TransactionModal({ isOpen, onClose, onSuccess, initialDa
         if (initialData.jumlah) setJumlah(formatNumberInput(initialData.jumlah))
         if (initialData.deskripsi) setDeskripsi(initialData.deskripsi)
         if (initialData.tipe) setTipe(initialData.tipe)
+        if (initialData.created_at) {
+          const d = new Date(initialData.created_at)
+          const tz = d.getTimezoneOffset() * 60000
+          setTanggal(new Date(d - tz).toISOString().slice(0, 16))
+        } else {
+          const now = new Date()
+          const tz = now.getTimezoneOffset() * 60000
+          setTanggal(new Date(now - tz).toISOString().slice(0, 16))
+        }
       } else {
         setJumlah('')
         setDeskripsi('')
         setTipe('Pengeluaran')
+        const now = new Date()
+        const tz = now.getTimezoneOffset() * 60000
+        setTanggal(new Date(now - tz).toISOString().slice(0, 16))
       }
     }
   }, [isOpen, initialData])
@@ -71,7 +84,8 @@ export default function TransactionModal({ isOpen, onClose, onSuccess, initialDa
         jumlah: parseNumberInput(jumlah),
         deskripsi,
         akun,
-        transferke: tipe === 'Transfer Kas' ? transferKe : null
+        transferke: tipe === 'Transfer Kas' ? transferKe : null,
+        tanggal: new Date(tanggal).toISOString()
       })
       showToast(t('modal_tx.success'), 'success')
       triggerHaptic([50])
@@ -187,6 +201,13 @@ export default function TransactionModal({ isOpen, onClose, onSuccess, initialDa
             <label className="block text-xs text-slate-500 mb-1 font-semibold">{t('modal_tx.desc_label')}</label>
             <input type="text" required value={deskripsi} onChange={e => setDeskripsi(e.target.value)}
               placeholder={t('modal_tx.desc_ph')}
+              className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-savora-800"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs text-slate-500 mb-1 font-semibold">{t('modal_tx.date_label')}</label>
+            <input type="datetime-local" required value={tanggal} onChange={e => setTanggal(e.target.value)}
               className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-savora-800"
             />
           </div>

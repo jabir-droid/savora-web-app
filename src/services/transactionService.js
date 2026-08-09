@@ -66,17 +66,23 @@ export const transactionService = {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) throw new Error("Anda belum login")
 
+    const insertData = {
+      user_id: user.id,
+      tipe: payload.tipe,
+      kategori: payload.kategori,
+      jumlah: payload.jumlah,
+      deskripsi: payload.deskripsi,
+      akun: payload.akun,
+      transferke: payload.transferke || null
+    }
+
+    if (payload.tanggal) {
+      insertData.created_at = payload.tanggal
+    }
+
     const { data, error } = await supabase
       .from('transactions')
-      .insert([{
-        user_id: user.id,
-        tipe: payload.tipe,
-        kategori: payload.kategori,
-        jumlah: payload.jumlah,
-        deskripsi: payload.deskripsi,
-        akun: payload.akun,
-        transferke: payload.transferke || null
-      }])
+      .insert([insertData])
       .select()
     
     if (error) throw error
