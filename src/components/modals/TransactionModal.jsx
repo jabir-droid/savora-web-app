@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { transactionService } from '../../services/transactionService'
 import { accountService } from '../../services/accountService'
 import { categoryService } from '../../services/categoryService'
@@ -59,8 +60,21 @@ export default function TransactionModal({ isOpen, onClose, onSuccess, initialDa
       
       setAccounts(accData)
       if (accData.length > 0) {
-        setAkun(initData?.akun || accData[0].namaakun)
-        setTransferKe(initData?.transferke || (accData.length > 1 ? accData[1].namaakun : accData[0].namaakun))
+        const activeAcc = sessionStorage.getItem('savora_active_account')
+        let defaultAcc = accData[0].namaakun
+        
+        if (activeAcc && activeAcc !== 'null' && activeAcc !== 'Semua') {
+          const exists = accData.find(a => a.namaakun === activeAcc)
+          if (exists) defaultAcc = activeAcc
+        }
+        
+        setAkun(initData?.akun || defaultAcc)
+        
+        const defaultTransferDest = accData.length > 1 
+          ? (accData[0].namaakun === defaultAcc ? accData[1].namaakun : accData[0].namaakun) 
+          : defaultAcc
+          
+        setTransferKe(initData?.transferke || defaultTransferDest)
       }
 
       setCategories(catData)
@@ -111,7 +125,7 @@ export default function TransactionModal({ isOpen, onClose, onSuccess, initialDa
 
   if (!isOpen) return null
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 bg-slate-900/60 z-50 flex items-center justify-center p-4 transition-opacity duration-300">
       <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl transform transition-transform duration-300 max-h-[90vh] overflow-y-auto">
         
@@ -249,6 +263,7 @@ export default function TransactionModal({ isOpen, onClose, onSuccess, initialDa
           </button>
         </form>
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }

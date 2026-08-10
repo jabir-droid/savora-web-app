@@ -18,6 +18,7 @@ export default function Transactions() {
   const [editModal, setEditModal] = useState({ isOpen: false, item: null })
 
   // Filters
+  const [showFilter, setShowFilter] = useState(false)
   const [search, setSearch] = useState('')
   const [filterType, setFilterType] = useState('Semua')
   const [filterCategory, setFilterCategory] = useState('Semua')
@@ -138,12 +139,18 @@ export default function Transactions() {
             <h3 className="font-bold text-xl text-slate-800">{t('tx.title')}</h3>
             <p className="text-xs text-slate-400">{t('tx.subtitle')}</p>
           </div>
-          <button onClick={handleExportCSV} className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold px-4 py-2.5 rounded-xl transition flex items-center gap-2 shadow-md">
-            <i className="fa-solid fa-file-excel"></i> <span>{t('tx.export')}</span>
-          </button>
+          <div className="flex gap-2">
+            <button onClick={() => setShowFilter(!showFilter)} className={`px-4 py-2.5 rounded-xl transition flex items-center gap-2 text-xs font-semibold shadow-md ${showFilter ? 'bg-savora-800 text-white' : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50'}`}>
+              <i className="fa-solid fa-filter"></i> <span>Filter</span>
+            </button>
+            <button onClick={handleExportCSV} className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold px-4 py-2.5 rounded-xl transition flex items-center gap-2 shadow-md">
+              <i className="fa-solid fa-file-excel"></i> <span>{t('tx.export')}</span>
+            </button>
+          </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-3 bg-slate-50 p-4 rounded-xl border border-slate-200/60">
+        {showFilter && (
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-3 bg-slate-50 p-4 rounded-xl border border-slate-200/60 animate-fade-in-sm">
           <div>
             <label className="block text-xs text-slate-500 mb-1 font-semibold uppercase">{t('tx.search_desc')}</label>
             <div className="relative">
@@ -191,6 +198,7 @@ export default function Transactions() {
             </select>
           </div>
         </div>
+        )}
 
         <div className="hidden md:block overflow-x-auto mt-4">
           <table className="w-full text-left border-collapse">
