@@ -208,13 +208,13 @@ export default function App() {
       {/* MOBILE OVERLAY */}
       {isMobileMenuOpen && (
         <div 
-          className="fixed inset-0 bg-slate-900/50 z-30 md:hidden" 
+          className="fixed inset-0 bg-slate-900/50 z-50 md:hidden" 
           onClick={() => setIsMobileMenuOpen(false)}
         />
       )}
 
       {/* 🧭 MAIN SIDEBAR */}
-      <aside className={`fixed left-0 top-0 bottom-0 w-64 bg-gradient-to-b from-savora-900 to-savora-800 text-white p-6 z-40 flex flex-col overflow-y-auto no-scrollbar shadow-2xl border-r border-savora-800/40 transition-transform duration-300 md:translate-x-0 ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'} md:flex`}>
+      <aside className={`fixed left-0 top-0 bottom-0 w-64 bg-gradient-to-b from-savora-900 to-savora-800 text-white p-6 z-50 flex flex-col overflow-y-auto no-scrollbar shadow-2xl border-r border-savora-800/40 transition-transform duration-300 md:translate-x-0 ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'} md:flex`}>
         <div className="flex items-center gap-3 mb-6 flex-shrink-0">
           <div className="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center shadow-lg border border-white/10">
             <i className="fa-solid fa-wallet text-xl text-savora-orange"></i>
