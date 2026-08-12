@@ -131,9 +131,7 @@ export default function App() {
       <div className="min-h-screen flex items-center justify-center p-4 bg-slate-50 font-sans">
         <div className="bg-white rounded-3xl shadow-sm border border-slate-200/60 w-full max-w-sm p-8">
           <div className="text-center mb-8">
-            <div className="h-16 w-16 bg-savora-800 text-white rounded-2xl mx-auto flex items-center justify-center text-3xl mb-4 shadow-sm">
-              <span className="font-black italic">S</span>
-            </div>
+            <img src="/favicon.svg" alt="Savora Logo" className="h-16 w-16 mx-auto mb-4 drop-shadow-sm" />
             <h1 className="text-2xl font-extrabold text-savora-900">Savora</h1>
           </div>
           
