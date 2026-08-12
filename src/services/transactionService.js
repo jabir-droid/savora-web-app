@@ -102,10 +102,17 @@ export const transactionService = {
         const accounts = await accountService.getAccounts()
         const acc = accounts.find(a => a.namaakun === payload.akun)
         if (acc && Number(acc.saldo) < Number(settings.notif_critical_threshold)) {
-          await notificationService.createNotification(
-            `Saldo Kritis: Saldo rekening ${acc.namaakun} kamu sekarang di bawah batas aman (Rp ${Number(settings.notif_critical_threshold).toLocaleString('id-ID')}).`,
-            'warning'
+          const existingNotifs = await notificationService.getNotifications()
+          const isAlreadyNotified = existingNotifs.some(n => 
+            n.text.includes(`Saldo Kritis: Saldo rekening ${acc.namaakun}`) && !n.read
           )
+          
+          if (!isAlreadyNotified) {
+            await notificationService.createNotification(
+              `Saldo Kritis: Saldo rekening ${acc.namaakun} kamu sekarang di bawah batas aman (Rp ${Number(settings.notif_critical_threshold).toLocaleString('id-ID')}).`,
+              'warning'
+            )
+          }
         }
       }
 
@@ -132,10 +139,17 @@ export const transactionService = {
           }
 
           if (totalSpent > catData.limit_anggaran) {
-            await notificationService.createNotification(
-              `Overbudget: Pengeluaran untuk kategori ${payload.kategori} bulan ini (Rp ${totalSpent.toLocaleString('id-ID')}) telah melebihi batas (Rp ${catData.limit_anggaran.toLocaleString('id-ID')}).`,
-              'error'
+            const existingNotifs = await notificationService.getNotifications()
+            const isAlreadyNotified = existingNotifs.some(n => 
+              n.text.includes(`Overbudget: Pengeluaran untuk kategori ${payload.kategori}`) && !n.read
             )
+            
+            if (!isAlreadyNotified) {
+              await notificationService.createNotification(
+                `Overbudget: Pengeluaran untuk kategori ${payload.kategori} bulan ini (Rp ${totalSpent.toLocaleString('id-ID')}) telah melebihi batas (Rp ${catData.limit_anggaran.toLocaleString('id-ID')}).`,
+                'error'
+              )
+            }
           }
         }
       }

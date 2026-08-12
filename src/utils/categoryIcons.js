@@ -14,7 +14,7 @@ export const CATEGORY_ICONS = {
   'Investasi': { icon: 'fa-chart-line', color: 'text-blue-500', bg: 'bg-blue-50', tKey: 'cat.default_investasi' },
   'Bonus': { icon: 'fa-gift', color: 'text-amber-500', bg: 'bg-amber-50', tKey: 'cat.default_bonus' },
   'Lain-lain': { icon: 'fa-ellipsis', color: 'text-slate-500', bg: 'bg-slate-50', tKey: 'cat.default_lainnya_in' },
-  'Transfer': { icon: 'fa-money-bill-transfer', color: 'text-indigo-500', bg: 'bg-indigo-50', tKey: 'tx.type_transfer' }
+  'Transfer': { icon: 'fa-money-bill-transfer', color: 'text-indigo-500', bg: 'bg-indigo-50' }
 }
 
 export const getDefaultCategories = (userId) => [

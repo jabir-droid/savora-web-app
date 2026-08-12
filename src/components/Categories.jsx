@@ -55,7 +55,10 @@ export default function Categories() {
       const defaults = getDefaultCategories(user.id)
       
       const missingDefaults = defaults.filter(def => 
-        !categories.find(c => c.namakategori.toLowerCase() === def.namakategori.toLowerCase())
+        !categories.find(c => 
+          c.namakategori.toLowerCase() === def.namakategori.toLowerCase() && 
+          c.tipe === def.tipe
+        )
       )
 
       if (missingDefaults.length > 0) {
