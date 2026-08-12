@@ -16,6 +16,7 @@ import FinanceConfigModal from './modals/FinanceConfigModal'
 import SecurityModal from './modals/SecurityModal'
 import DataManagementModal from './modals/DataManagementModal'
 import AboutModal from './modals/AboutModal'
+import TelegramModal from './modals/TelegramModal'
 
 export default function Settings() {
   const { t } = useLanguage()
@@ -183,6 +184,12 @@ export default function Settings() {
           colorClass="bg-slate-50 text-slate-500" 
           onClick={() => { triggerHaptic([30]); setActiveModal('about') }} 
         />
+        <MenuItem 
+          icon="fa-telegram" 
+          label="Integrasi Telegram Bot" 
+          colorClass="bg-blue-50 text-blue-500" 
+          onClick={() => { triggerHaptic([30]); setActiveModal('telegram') }} 
+        />
       </div>
 
       {/* Logic Modals */}
@@ -226,6 +233,13 @@ export default function Settings() {
       <AboutModal
         isOpen={activeModal === 'about'}
         onClose={() => setActiveModal(null)}
+      />
+
+      <TelegramModal
+        isOpen={activeModal === 'telegram'}
+        onClose={() => setActiveModal(null)}
+        initialSettings={settings}
+        onSettingsChange={(newSettings) => setSettings({ ...settings, ...newSettings })}
       />
 
       {/* Reused Original Modals */}
