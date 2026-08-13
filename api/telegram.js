@@ -91,8 +91,12 @@ export default async function handler(req, res) {
       // Acknowledge receipt
       await sendMessage('⏳ Memproses nota... Mohon tunggu sebentar.')
 
-      // Get the highest resolution photo
-      const photo = message.photo[message.photo.length - 1]
+      // Get a medium resolution photo to avoid payload limits (usually index 1 or 2)
+      let photoIndex = message.photo.length - 1;
+      if (message.photo.length >= 3) {
+        photoIndex = message.photo.length - 2; // Use medium size
+      }
+      const photo = message.photo[photoIndex]
       const fileId = photo.file_id
 
       // Get file path from Telegram
@@ -120,14 +124,14 @@ export default async function handler(req, res) {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          model: 'llama-3.2-90b-vision-preview',
+          model: 'llama-3.2-11b-vision-preview',
           messages: [
             {
               role: 'user',
               content: [
                 {
                   type: 'text',
-                  text: 'You are a receipt parser. Extract the total final amount and a short description of the purchase (max 5 words, e.g. "Makan Siang KFC"). Return ONLY a valid JSON object without markdown formatting, like this: {"jumlah": 50000, "deskripsi": "Makan Siang KFC"}. Ensure jumlah is a plain number.'
+                  text: 'You are a receipt parser. Extract the total final amount and a short description of the purchase (max 5 words, e.g. "Makan Siang KFC"). Return ONLY a valid JSON object without markdown formatting, like this: {"jumlah": 50000, "deskripsi": "Makan Siang KFC"}. Ensure jumlah is a plain integer number.'
                 },
                 {
                   type: 'image_url',
@@ -142,6 +146,13 @@ export default async function handler(req, res) {
       })
 
       const groqData = await groqRes.json()
+
+      if (groqData.error) {
+        console.error("Groq API Error:", groqData.error)
+        await sendMessage(`❌ Error dari Groq AI: ${groqData.error.message || JSON.stringify(groqData.error)}`)
+        return res.status(200).send('OK')
+      }
+
       let extractedData = null
 
       try {
@@ -152,6 +163,8 @@ export default async function handler(req, res) {
         }
       } catch (err) {
         console.error("Failed to parse Groq response:", err)
+        await sendMessage(`❌ Gagal membaca format data dari AI. Format tidak valid.`)
+        return res.status(200).send('OK')
       }
 
       if (!extractedData || !extractedData.jumlah) {
