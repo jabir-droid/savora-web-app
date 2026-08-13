@@ -91,7 +91,7 @@ const translations = {
     'settings.about_savora': 'Tentang Savora AI',
     'settings.about_desc': 'Aplikasi pencatatan keuangan cerdas dengan integrasi AI (LLaMA 3) untuk analisis dan kemudahan Anda.',
     'settings.about_version': 'Versi 1.0.0 (AI Edition)',
-    'settings.about_dev': 'Dikembangkan oleh KyberLabs',
+    'settings.about_dev': 'KyberLabs',
 
     // TelegramModal
     'tg.title': 'Telegram Bot',
@@ -639,7 +639,7 @@ const translations = {
     'settings.about_savora': 'About Savora AI',
     'settings.about_desc': 'Smart financial tracking app with AI integration (LLaMA 3) for your convenience.',
     'settings.about_version': 'Version 1.0.0 (AI Edition)',
-    'settings.about_dev': 'Developed by KyberLabs',
+    'settings.about_dev': 'KyberLabs',
 
     // TelegramModal
     'tg.title': 'Telegram Bot',
