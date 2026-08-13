@@ -114,14 +114,20 @@ export default function Settings() {
       {/* Profile Header */}
       <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-emerald-100 flex flex-col items-center text-center mt-2 relative overflow-hidden">
         <div className="absolute top-0 inset-x-0 h-24 bg-gradient-to-b from-emerald-50 to-transparent pointer-events-none"></div>
-        <div className="relative w-24 h-24 rounded-full bg-gradient-to-tr from-savora-800 to-emerald-500 p-1 shadow-xl shadow-emerald-500/20 mb-4 z-10">
+        <div 
+          className="relative w-24 h-24 rounded-full bg-gradient-to-tr from-savora-800 to-emerald-500 p-1 shadow-xl shadow-emerald-500/20 mb-4 z-10 cursor-pointer group"
+          onClick={() => { triggerHaptic([30]); setActiveModal('profile') }}
+        >
           {avatarUrl ? (
-            <img src={avatarUrl} alt="Avatar" className="w-full h-full rounded-full object-cover border-2 border-white bg-white" />
+            <img src={avatarUrl} alt="Avatar" className="w-full h-full rounded-full object-cover border-2 border-white bg-white group-hover:opacity-80 transition" />
           ) : (
-            <div className="w-full h-full rounded-full bg-white flex items-center justify-center text-3xl font-bold text-savora-800 border-2 border-white">
+            <div className="w-full h-full rounded-full bg-white flex items-center justify-center text-3xl font-bold text-savora-800 border-2 border-white group-hover:bg-slate-50 transition">
               {displayName ? displayName.charAt(0).toUpperCase() : 'U'}
             </div>
           )}
+          <div className="absolute bottom-0 right-0 bg-emerald-500 text-white w-7 h-7 rounded-full flex items-center justify-center shadow-md border-2 border-white z-20 transition group-hover:scale-110 group-active:scale-95">
+            <i className="fa-solid fa-camera text-[11px]"></i>
+          </div>
         </div>
         <h2 className="text-xl font-extrabold text-slate-800 z-10">{displayName || 'Pengguna'}</h2>
         <p className="text-sm text-slate-500 mt-1 z-10">{email}</p>
