@@ -124,7 +124,7 @@ export default async function handler(req, res) {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          model: 'llama-3.2-11b-vision-preview',
+          model: 'llama-3.2-11b-vision-instruct',
           messages: [
             {
               role: 'user',
