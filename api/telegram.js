@@ -37,7 +37,8 @@ export default async function handler(req, res) {
   try {
     // 1. Handle Account Linking (/start SAVORA-XXXXX)
     if (text.startsWith('/start SAVORA-')) {
-      const code = text.split(' ')[1]
+      const fullCode = text.split(' ')[1] // e.g. "SAVORA-88356"
+      const code = fullCode.replace('SAVORA-', '') // e.g. "88356"
       
       // Find user with this link code
       const { data: users, error: searchErr } = await supabase
