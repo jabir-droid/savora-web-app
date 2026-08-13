@@ -214,8 +214,8 @@ export default function App() {
       {/* 🧭 MAIN SIDEBAR */}
       <aside className={`fixed left-0 top-0 bottom-0 w-64 bg-gradient-to-b from-savora-900 to-savora-800 text-white p-6 z-50 flex flex-col overflow-y-auto no-scrollbar shadow-2xl border-r border-savora-800/40 transition-transform duration-300 md:translate-x-0 ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'} md:flex`}>
         <div className="flex items-center gap-3 mb-6 flex-shrink-0">
-          <div className="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center shadow-lg border border-white/10">
-            <i className="fa-solid fa-wallet text-xl text-savora-orange"></i>
+          <div className="flex items-center justify-center">
+            <img src="/logo-s.svg" alt="Savora Logo" className="w-8 h-8 drop-shadow-lg" />
           </div>
           <div>
             <h1 className="text-xl font-extrabold tracking-tight">Savora AI</h1>
