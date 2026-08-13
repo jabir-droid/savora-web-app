@@ -10,9 +10,9 @@
     <!-- Orange Arrow -->
     <path d="M 150 170 C 200 170, 200 230, 250 230 L 150 230 A 90 90 0 0 1 150 50 L 260 50 L 260 25 L 310 80 L 260 135 L 260 110 L 150 110 A 30 30 0 0 0 150 170 Z" fill="#FF7A1A" stroke="#FF7A1A" stroke-width="8" stroke-linejoin="round" />
 
-    <!-- White Arrow -->
+    <!-- Dark Blue Arrow -->
     <g transform="rotate(180 200 200)">
-      <path d="M 150 170 C 200 170, 200 230, 250 230 L 150 230 A 90 90 0 0 1 150 50 L 260 50 L 260 25 L 310 80 L 260 135 L 260 110 L 150 110 A 30 30 0 0 0 150 170 Z" fill="#FFFFFF" stroke="#FFFFFF" stroke-width="8" stroke-linejoin="round" />
+      <path d="M 150 170 C 200 170, 200 230, 250 230 L 150 230 A 90 90 0 0 1 150 50 L 260 50 L 260 25 L 310 80 L 260 135 L 260 110 L 150 110 A 30 30 0 0 0 150 170 Z" fill="#1D2D44" stroke="#1D2D44" stroke-width="8" stroke-linejoin="round" />
     </g>
   </g>
 </svg>
