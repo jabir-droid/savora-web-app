@@ -100,7 +100,7 @@ export default function Settings() {
     <button onClick={onClick} className="w-full flex items-center justify-between p-4 bg-white hover:bg-slate-50 transition border-b border-slate-100 last:border-0 group">
       <div className="flex items-center gap-4">
         <div className={`w-10 h-10 rounded-xl flex items-center justify-center shadow-sm ${colorClass}`}>
-          <i className={`fa-solid ${icon} text-lg`}></i>
+          <i className={`${icon.includes('fa-') && icon.includes(' ') ? icon : 'fa-solid ' + icon} text-lg`}></i>
         </div>
         <span className="font-bold text-slate-700 group-hover:text-savora-800 transition">{label}</span>
       </div>
@@ -180,12 +180,12 @@ export default function Settings() {
         />
         <MenuItem 
           icon="fa-circle-info" 
-          label={t('settings.about') || 'Tentang Savora'} 
+          label={t('settings.about_savora') || 'Tentang Savora'} 
           colorClass="bg-slate-50 text-slate-500" 
           onClick={() => { triggerHaptic([30]); setActiveModal('about') }} 
         />
         <MenuItem 
-          icon="fa-telegram" 
+          icon="fa-brands fa-telegram" 
           label="Integrasi Telegram Bot" 
           colorClass="bg-blue-50 text-blue-500" 
           onClick={() => { triggerHaptic([30]); setActiveModal('telegram') }} 
