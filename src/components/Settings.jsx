@@ -4,6 +4,7 @@ import { accountService } from '../services/accountService'
 import { transactionService } from '../services/transactionService'
 import { supabase } from '../supabaseClient'
 import { useLanguage } from '../contexts/LanguageContext'
+import { useAuth } from '../contexts/AuthContext'
 import { useToast } from '../contexts/ToastContext'
 import { triggerHaptic } from '../utils/haptics'
 
@@ -21,12 +22,13 @@ import TelegramModal from './modals/TelegramModal'
 export default function Settings() {
   const { t } = useLanguage()
   const { showToast } = useToast()
+  const { user } = useAuth()
   
   const [settings, setSettings] = useState({})
   const [accounts, setAccounts] = useState([])
-  const [displayName, setDisplayName] = useState('')
-  const [avatarUrl, setAvatarUrl] = useState('')
-  const [email, setEmail] = useState('')
+  const [displayName, setDisplayName] = useState(user?.user_metadata?.display_name || '')
+  const [avatarUrl, setAvatarUrl] = useState(user?.user_metadata?.avatar_url || '')
+  const [email, setEmail] = useState(user?.email || '')
   const [summary, setSummary] = useState({ transactions: 0, income: 0, expense: 0 })
 
   // Modal States
@@ -41,7 +43,6 @@ export default function Settings() {
     if (s) setSettings(s)
     if (accs) setAccounts(accs)
     
-    const { data: { user } } = await supabase.auth.getUser()
     if (user) {
       setDisplayName(user.user_metadata?.display_name || '')
       setAvatarUrl(user.user_metadata?.avatar_url || '')
