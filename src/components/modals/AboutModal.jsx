@@ -12,7 +12,7 @@ export default function AboutModal({ isOpen, onClose }) {
         <div className="flex justify-between items-center p-5 border-b border-slate-100 shrink-0">
           <h3 className="font-bold text-slate-800 flex items-center gap-2">
             <i className="fa-solid fa-circle-info text-slate-400"></i>
-            {t('settings.about') || 'Tentang Savora'}
+            {t('settings.about_savora') || 'Tentang Savora'}
           </h3>
           <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 transition">
             <i className="fa-solid fa-xmark"></i>
