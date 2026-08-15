@@ -6,6 +6,15 @@ import { useLanguage } from '../contexts/LanguageContext'
 import ConfirmModal from './modals/ConfirmModal'
 import { settingsService } from '../services/settingsService'
 
+const parseMarkdown = (text) => {
+  if (!text) return { __html: '' }
+  let html = text
+    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.*?)\*/g, '<em>$1</em>')
+    .replace(/\n/g, '<br />')
+  return { __html: html }
+}
+
 export default function AiAssistant() {
   const { t } = useLanguage()
   
@@ -67,67 +76,29 @@ export default function AiAssistant() {
     setTimeout(async () => {
       let aiResponse = ""
       try {
-        const s = await settingsService.getSettings()
-        if (!s || !s.groq_api_key) {
-           throw new Error(t('ai.no_api_key') || 'API Key Groq belum diatur di Pengaturan. AI tidak dapat merespon.')
+        const response = await fetch('/api/chat', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            mode: currentMode,
+            message: userMsg
+          })
+        })
+
+        if (!response.ok) {
+           const errData = await response.json().catch(() => ({}))
+           throw new Error(errData.error || 'Gagal menghubungi server AI')
         }
+        
+        const data = await response.json()
 
         if (currentMode === 'consult') {
-          const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${s.groq_api_key}`,
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-              model: 'llama-3.1-8b-instant',
-              messages: [
-                {
-                  role: 'system',
-                  content: 'Anda adalah Savora, Asisten AI Keuangan yang ramah, ahli mengatur keuangan, investasi, dan budgeting. Jawab dengan ringkas, jelas, dan gunakan bahasa Indonesia yang bersahabat.'
-                },
-                {
-                  role: 'user',
-                  content: userMsg
-                }
-              ],
-              temperature: 0.7,
-              max_tokens: 500
-            })
-          })
-
-          if (!response.ok) throw new Error('Gagal menghubungi AI Server')
-          const data = await response.json()
-          aiResponse = data.choices[0].message.content.trim()
-
+          aiResponse = data.response
         } else {
           // Mode Catat menggunakan NLP
-          const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${s.groq_api_key}`,
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-              model: 'llama-3.1-8b-instant',
-              messages: [
-                {
-                  role: 'system',
-                  content: `Ekstrak data transaksi dari input user. Kembalikan HANYA JSON object dengan format: {"action": "pemasukan" atau "pengeluaran", "desc": "deskripsi singkat", "amount": angka_nominal, "account": "nama akun (misal Dompet Utama)"}. Jika tidak bisa diekstrak, kembalikan {"error": "Tidak dimengerti"}. Jangan tambahkan teks lain. Contoh user: "Beli kopi 25rb pakai bca" -> {"action":"pengeluaran", "desc":"Beli Kopi", "amount":25000, "account":"bca"}`
-                },
-                {
-                  role: 'user',
-                  content: userMsg
-                }
-              ],
-              temperature: 0.1,
-              max_tokens: 150
-            })
-          })
-
-          if (!response.ok) throw new Error('Gagal menghubungi AI Server')
-          const data = await response.json()
-          const content = data.choices[0].message.content.trim()
+          const content = data.response
           
           let parsed = null
           const jsonStr = content.replace(/```json/g, '').replace(/```/g, '').trim()
@@ -222,7 +193,7 @@ export default function AiAssistant() {
                 <i className={`fa-solid ${m.sender === 'ai' ? 'fa-robot' : 'fa-user'}`}></i>
               </div>
               <div className={`rounded-2xl px-4 py-2.5 text-sm shadow-sm leading-relaxed ${m.sender === 'user' ? 'bg-savora-800 text-white' : 'bg-white text-slate-700'}`}>
-                {m.text}
+                {m.sender === 'user' ? m.text : <div dangerouslySetInnerHTML={parseMarkdown(m.text)} />}
               </div>
             </div>
           ))}

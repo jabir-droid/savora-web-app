@@ -34,11 +34,11 @@ export default function TransactionModal({ isOpen, onClose, onSuccess, initialDa
         if (initialData.created_at) {
           const d = new Date(initialData.created_at)
           const tz = d.getTimezoneOffset() * 60000
-          setTanggal(new Date(d - tz).toISOString().slice(0, 16))
+          setTanggal(new Date(d - tz).toISOString().slice(0, 10))
         } else {
           const now = new Date()
           const tz = now.getTimezoneOffset() * 60000
-          setTanggal(new Date(now - tz).toISOString().slice(0, 16))
+          setTanggal(new Date(now - tz).toISOString().slice(0, 10))
         }
       } else {
         setJumlah('')
@@ -46,7 +46,7 @@ export default function TransactionModal({ isOpen, onClose, onSuccess, initialDa
         setTipe('Pengeluaran')
         const now = new Date()
         const tz = now.getTimezoneOffset() * 60000
-        setTanggal(new Date(now - tz).toISOString().slice(0, 16))
+        setTanggal(new Date(now - tz).toISOString().slice(0, 10))
       }
     }
   }, [isOpen, initialData])
@@ -230,7 +230,7 @@ export default function TransactionModal({ isOpen, onClose, onSuccess, initialDa
 
           <div>
             <label className="block text-xs text-slate-500 mb-1 font-semibold">{t('modal_tx.date_label')}</label>
-            <input type="datetime-local" required value={tanggal} onChange={e => setTanggal(e.target.value)}
+            <input type="date" required value={tanggal} onChange={e => setTanggal(e.target.value)}
               className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-savora-800"
             />
           </div>

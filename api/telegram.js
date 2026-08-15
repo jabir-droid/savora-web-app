@@ -9,10 +9,16 @@ export default async function handler(req, res) {
   const SUPABASE_URL = process.env.SUPABASE_URL
   const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY
   const GROQ_KEY = process.env.GROQ_API_KEY
+  const GEMINI_KEY = process.env.GEMINI_API_KEY
 
-  if (!BOT_TOKEN || !SUPABASE_URL || !SUPABASE_KEY || !GROQ_KEY) {
+  if (!BOT_TOKEN || !SUPABASE_URL || !SUPABASE_KEY) {
     console.error("Missing environment variables")
     return res.status(500).json({ error: 'Server misconfiguration' })
+  }
+
+  if (!GEMINI_KEY && !GROQ_KEY) {
+    console.error("Missing AI API Key")
+    return res.status(500).json({ error: 'Missing AI API Key' })
   }
 
   const supabase = createClient(SUPABASE_URL, SUPABASE_KEY)
@@ -116,47 +122,45 @@ export default async function handler(req, res) {
       const imageBuffer = await imageRes.arrayBuffer()
       const base64Image = `data:image/jpeg;base64,${Buffer.from(imageBuffer).toString('base64')}`
 
-      // Call Groq Vision API
-      const groqRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      // Call Gemini API
+      const aiRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key=${GEMINI_KEY || GROQ_KEY}`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${GROQ_KEY}`,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          model: 'llama-3.2-11b-vision-instruct',
-          messages: [
+          contents: [
             {
-              role: 'user',
-              content: [
+              parts: [
+                { text: 'You are a receipt parser. Extract the total final amount and a short description of the purchase (max 5 words, e.g. "Makan Siang KFC"). Return ONLY a valid JSON object without markdown formatting, like this: {"jumlah": 50000, "deskripsi": "Makan Siang KFC"}. Ensure jumlah is a plain integer number.' },
                 {
-                  type: 'text',
-                  text: 'You are a receipt parser. Extract the total final amount and a short description of the purchase (max 5 words, e.g. "Makan Siang KFC"). Return ONLY a valid JSON object without markdown formatting, like this: {"jumlah": 50000, "deskripsi": "Makan Siang KFC"}. Ensure jumlah is a plain integer number.'
-                },
-                {
-                  type: 'image_url',
-                  image_url: { url: base64Image }
+                  inline_data: {
+                    mime_type: 'image/jpeg',
+                    data: Buffer.from(imageBuffer).toString('base64')
+                  }
                 }
               ]
             }
           ],
-          temperature: 0.1,
-          max_tokens: 150
+          generationConfig: {
+            temperature: 0.1,
+            maxOutputTokens: 150
+          }
         })
       })
 
-      const groqData = await groqRes.json()
+      const aiData = await aiRes.json()
 
-      if (groqData.error) {
-        console.error("Groq API Error:", groqData.error)
-        await sendMessage(`❌ Error dari Groq AI: ${groqData.error.message || JSON.stringify(groqData.error)}`)
+      if (aiData.error) {
+        console.error("AI API Error:", aiData.error)
+        await sendMessage(`❌ Error dari AI: ${aiData.error.message || JSON.stringify(aiData.error)}`)
         return res.status(200).send('OK')
       }
 
       let extractedData = null
 
       try {
-        const content = groqData.choices[0].message.content
+        const content = aiData.candidates[0].content.parts[0].text
         const jsonMatch = content.match(/\{[\s\S]*\}/)
         if (jsonMatch) {
           extractedData = JSON.parse(jsonMatch[0])

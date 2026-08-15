@@ -10,13 +10,11 @@ export default function SecurityModal({ isOpen, onClose, initialSettings, onSett
   
   const [settings, setSettings] = useState(initialSettings || {})
   const [newPin, setNewPin] = useState('')
-  const [newGroqKey, setNewGroqKey] = useState('')
   const [isSaving, setIsSaving] = useState(false)
 
   useEffect(() => {
     if (isOpen && initialSettings) {
       setSettings(initialSettings)
-      setNewGroqKey(initialSettings.groq_api_key || '')
     }
   }, [isOpen, initialSettings])
 
@@ -56,21 +54,7 @@ export default function SecurityModal({ isOpen, onClose, initialSettings, onSett
     }
   }
 
-  const handleSaveGroqKey = async () => {
-    setIsSaving(true)
-    try {
-      await settingsService.updateSettings({ groq_api_key: newGroqKey })
-      const updated = { ...settings, groq_api_key: newGroqKey }
-      setSettings(updated)
-      triggerHaptic([50])
-      showToast(t('settings.groq_success') || 'API Key berhasil disimpan', 'success')
-      onSettingsChange(updated)
-    } catch (e) {
-      showToast(t('settings.groq_fail') + e.message, 'error')
-    } finally {
-      setIsSaving(false)
-    }
-  }
+
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-fade-in">
@@ -111,21 +95,7 @@ export default function SecurityModal({ isOpen, onClose, initialSettings, onSett
             </div>
           </div>
 
-          <div className="border-t border-slate-100 pt-6 space-y-4">
-            <div className="flex-1">
-              <h4 className="font-bold text-sm text-slate-800 flex items-center gap-2">
-                <i className="fa-solid fa-brain text-savora-orange"></i> {t('settings.lbl_ai_integ')}
-              </h4>
-              <p className="text-xs text-slate-400 mt-1">{t('settings.desc_ai_integ')}</p>
-            </div>
-            <div className="flex gap-2">
-              <input type="password" value={newGroqKey} onChange={e => setNewGroqKey(e.target.value)} placeholder="gsk_..."
-                className="flex-1 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-savora-800 bg-white" />
-              <button onClick={handleSaveGroqKey} disabled={isSaving} className="bg-savora-800 hover:bg-savora-900 text-white text-xs font-bold px-5 py-2.5 rounded-xl transition shadow">
-                {t('settings.btn_save')}
-              </button>
-            </div>
-          </div>
+
 
           <div className="border-t border-slate-100 pt-6 flex items-center justify-between gap-4">
             <div className="flex-1">
