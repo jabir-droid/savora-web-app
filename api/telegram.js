@@ -95,6 +95,15 @@ export default async function handler(req, res) {
       const userId = linkedUsers[0].user_id
       const defaultAccount = linkedUsers[0].default_account || 'Dompet' // Fallback account
 
+      // Fetch all user accounts to allow AI to map caption to correct account
+      const { data: userAccounts } = await supabase
+        .from('accounts')
+        .select('id, namaakun, saldo')
+        .eq('user_id', userId)
+
+      const accountNamesList = userAccounts ? userAccounts.map(a => a.namaakun).join(', ') : defaultAccount;
+      const userCaption = message.caption || '';
+
       // Acknowledge receipt
       await sendMessage('⏳ Memproses nota... Mohon tunggu sebentar.')
 
@@ -132,7 +141,11 @@ export default async function handler(req, res) {
           input: [
             {
               type: 'text',
-              text: 'You are a receipt parser. Extract the total final amount and a short description of the purchase (max 5 words, e.g. "Makan Siang KFC"). Return ONLY a valid JSON object without markdown formatting, like this: {"jumlah": 50000, "deskripsi": "Makan Siang KFC"}. Ensure jumlah is a plain integer number.'
+              text: `You are a receipt parser. Extract the total final amount and a short description of the purchase (max 5 words, e.g. "Makan Siang KFC"). 
+Also, determine the account to use for payment based on the user's caption: "${userCaption}". 
+Valid accounts are: [${accountNamesList}]. 
+If the caption mentions an account, pick the closest match from the valid accounts list. If no caption is provided or no match is found, return exactly "${defaultAccount}".
+Return ONLY a valid JSON object without markdown formatting, like this: {"jumlah": 50000, "deskripsi": "Makan Siang KFC", "akun": "${defaultAccount}"}. Ensure jumlah is a plain integer number.`
             },
             {
               type: 'image',
@@ -164,13 +177,16 @@ export default async function handler(req, res) {
       }
 
       // Insert into Savora DB
+      const matchedAccount = (userAccounts || []).find(a => a.namaakun === extractedData.akun) || (userAccounts || []).find(a => a.namaakun === defaultAccount);
+      const finalAccountName = matchedAccount ? matchedAccount.namaakun : (extractedData.akun || defaultAccount);
+
       const transactionData = {
         user_id: userId,
         tipe: 'Pengeluaran',
         kategori: 'Lainnya', // Default category since AI doesn't categorize perfectly yet
         jumlah: extractedData.jumlah,
         deskripsi: extractedData.deskripsi || 'Nota Otomatis',
-        akun: defaultAccount,
+        akun: finalAccountName,
         created_at: new Date().toISOString()
       }
 
@@ -183,22 +199,15 @@ export default async function handler(req, res) {
         await sendMessage('❌ Terjadi kesalahan saat menyimpan transaksi ke database.')
       } else {
         // Also update account balance
-        const { data: accounts } = await supabase
-          .from('accounts')
-          .select('id, saldo')
-          .eq('user_id', userId)
-          .eq('namaakun', defaultAccount)
-          .limit(1)
-
-        if (accounts && accounts.length > 0) {
-          const newBalance = Number(accounts[0].saldo) - Number(extractedData.jumlah)
+        if (matchedAccount) {
+          const newBalance = Number(matchedAccount.saldo) - Number(extractedData.jumlah)
           await supabase
             .from('accounts')
             .update({ saldo: newBalance })
-            .eq('id', accounts[0].id)
+            .eq('id', matchedAccount.id)
         }
 
-        await sendMessage(`✅ Berhasil! Transaksi sebesar Rp ${extractedData.jumlah.toLocaleString('id-ID')} (${transactionData.deskripsi}) telah dicatat ke akun ${defaultAccount}.`)
+        await sendMessage(`✅ Berhasil! Transaksi sebesar Rp ${extractedData.jumlah.toLocaleString('id-ID')} (${transactionData.deskripsi}) telah dicatat ke akun ${finalAccountName}.`)
       }
 
       return res.status(200).send('OK')
