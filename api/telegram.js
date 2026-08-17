@@ -154,7 +154,7 @@ export default async function handler(req, res) {
         }
       } catch (err) {
         console.error("AI Error:", err)
-        await sendMessage(`❌ Error dari AI: Gagal memproses gambar atau format respons tidak valid.`)
+        await sendMessage(`❌ Error dari AI: ${err.message || err.toString()}`)
         return res.status(200).send('OK')
       }
 
