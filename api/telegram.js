@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
+import { GoogleGenAI } from '@google/genai'
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -123,51 +124,39 @@ export default async function handler(req, res) {
       const base64Image = `data:image/jpeg;base64,${Buffer.from(imageBuffer).toString('base64')}`
 
       // Call Gemini API
-      const aiRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_KEY || GROQ_KEY}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          contents: [
-            {
-              parts: [
-                { text: 'You are a receipt parser. Extract the total final amount and a short description of the purchase (max 5 words, e.g. "Makan Siang KFC"). Return ONLY a valid JSON object without markdown formatting, like this: {"jumlah": 50000, "deskripsi": "Makan Siang KFC"}. Ensure jumlah is a plain integer number.' },
-                {
-                  inline_data: {
-                    mime_type: 'image/jpeg',
-                    data: Buffer.from(imageBuffer).toString('base64')
-                  }
-                }
-              ]
-            }
-          ],
-          generationConfig: {
-            temperature: 0.1,
-            maxOutputTokens: 150
-          }
-        })
-      })
-
-      const aiData = await aiRes.json()
-
-      if (aiData.error) {
-        console.error("AI API Error:", aiData.error)
-        await sendMessage(`❌ Error dari AI: ${aiData.error.message || JSON.stringify(aiData.error)}`)
-        return res.status(200).send('OK')
-      }
-
-      let extractedData = null
-
+      let extractedData = null;
       try {
-        const content = aiData.candidates[0].content.parts[0].text
+        const ai = new GoogleGenAI({ apiKey: GEMINI_KEY || GROQ_KEY });
+        const interaction = await ai.interactions.create({
+          model: 'gemini-2.5-flash',
+          input: [
+            {
+              type: 'text',
+              text: 'You are a receipt parser. Extract the total final amount and a short description of the purchase (max 5 words, e.g. "Makan Siang KFC"). Return ONLY a valid JSON object without markdown formatting, like this: {"jumlah": 50000, "deskripsi": "Makan Siang KFC"}. Ensure jumlah is a plain integer number.'
+            },
+            {
+              type: 'image',
+              inlineData: {
+                mimeType: 'image/jpeg',
+                data: Buffer.from(imageBuffer).toString('base64')
+              }
+            }
+          ]
+        });
+
+        const content = interaction.output_text ? interaction.output_text.trim() : interaction.text ? interaction.text.trim() : ''
+        
+        if (!content) {
+          throw new Error("Empty response from AI")
+        }
+
         const jsonMatch = content.match(/\{[\s\S]*\}/)
         if (jsonMatch) {
           extractedData = JSON.parse(jsonMatch[0])
         }
       } catch (err) {
-        console.error("Failed to parse Groq response:", err)
-        await sendMessage(`❌ Gagal membaca format data dari AI. Format tidak valid.`)
+        console.error("AI Error:", err)
+        await sendMessage(`❌ Error dari AI: Gagal memproses gambar atau format respons tidak valid.`)
         return res.status(200).send('OK')
       }
 
