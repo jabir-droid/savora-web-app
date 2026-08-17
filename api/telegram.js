@@ -131,13 +131,18 @@ export default async function handler(req, res) {
           model: 'gemini-2.5-flash',
           input: [
             {
-              text: 'You are a receipt parser. Extract the total final amount and a short description of the purchase (max 5 words, e.g. "Makan Siang KFC"). Return ONLY a valid JSON object without markdown formatting, like this: {"jumlah": 50000, "deskripsi": "Makan Siang KFC"}. Ensure jumlah is a plain integer number.'
-            },
-            {
-              inline_data: {
-                mime_type: 'image/jpeg',
-                data: Buffer.from(imageBuffer).toString('base64')
-              }
+              role: 'user',
+              parts: [
+                {
+                  text: 'You are a receipt parser. Extract the total final amount and a short description of the purchase (max 5 words, e.g. "Makan Siang KFC"). Return ONLY a valid JSON object without markdown formatting, like this: {"jumlah": 50000, "deskripsi": "Makan Siang KFC"}. Ensure jumlah is a plain integer number.'
+                },
+                {
+                  inline_data: {
+                    mime_type: 'image/jpeg',
+                    data: Buffer.from(imageBuffer).toString('base64')
+                  }
+                }
+              ]
             }
           ]
         });
