@@ -128,7 +128,7 @@ export default async function handler(req, res) {
       try {
         const ai = new GoogleGenAI({ apiKey: GEMINI_KEY || GROQ_KEY });
         const interaction = await ai.interactions.create({
-          model: 'gemini-2.0-flash',
+          model: 'gemini-3.6-flash',
           input: [
             {
               type: 'text',
