@@ -64,12 +64,17 @@ export default async function handler(req, res) {
   const chatId = message.chat.id
   const text = message.text || ''
 
+  const escapeHTML = (str) => {
+    if (!str) return '';
+    return str.toString().replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  };
+
   // Utility to send message back to Telegram
   const sendMessage = async (text) => {
     await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ chat_id: chatId, text })
+      body: JSON.stringify({ chat_id: chatId, text, parse_mode: 'HTML' })
     })
   }
 
@@ -81,6 +86,7 @@ export default async function handler(req, res) {
       body: JSON.stringify({ 
         chat_id: chatId, 
         text,
+        parse_mode: 'HTML',
         reply_markup: {
           keyboard: [
             [{ text: '📝 Catat Manual' }, { text: '📊 Laporan Bulan Ini' }],
@@ -145,15 +151,15 @@ export default async function handler(req, res) {
 
     // Handle Menu Navigation Clicks
     if (text === '📝 Catat Manual') {
-      await sendMenu('Untuk mencatat pengeluaran tanpa nota, ketik pengeluaran Anda dengan awalan "Catat:".\n\nContoh: "Catat: Beli bensin 50rb pakai BCA patungan berdua"');
+      await sendMenu('Untuk mencatat pengeluaran tanpa nota, ketik pengeluaran Anda dengan awalan <b>"Catat:"</b>.\n\nContoh: <code>Catat: Beli bensin 50rb pakai BCA patungan berdua</code>');
       return res.status(200).send('OK');
     }
     if (text === '💬 Konsultasi AI') {
-      await sendMenu('Untuk konsultasi keuangan, ketik pertanyaan Anda dengan awalan "Tanya:".\n\nContoh: "Tanya: Bagaimana cara menabung untuk beli motor dengan gaji 3 juta?"');
+      await sendMenu('Untuk konsultasi keuangan, ketik pertanyaan Anda dengan awalan <b>"Tanya:"</b>.\n\nContoh: <code>Tanya: Bagaimana cara menabung untuk beli motor dengan gaji 3 juta?</code>');
       return res.status(200).send('OK');
     }
     if (text === 'ℹ️ Bantuan') {
-      await sendMenu('Savora Telegram Bot dapat membantu Anda:\n\n📷 Kirim foto nota untuk dicatat otomatis.\n📝 Gunakan "Catat: [deskripsi]" untuk mencatat manual.\n💬 Gunakan "Tanya: [pertanyaan]" untuk konsultasi AI.\n📊 Tekan "Laporan Bulan Ini" untuk ringkasan pengeluaran.');
+      await sendMenu('<b>Savora Telegram Bot dapat membantu Anda:</b>\n\n📷 Kirim <b>foto nota</b> untuk dicatat otomatis.\n📝 Gunakan <b>"Catat: [deskripsi]"</b> untuk mencatat manual.\n💬 Gunakan <b>"Tanya: [pertanyaan]"</b> untuk konsultasi AI.\n📊 Tekan <b>"Laporan Bulan Ini"</b> untuk ringkasan pengeluaran.');
       return res.status(200).send('OK');
     }
 
@@ -176,11 +182,11 @@ export default async function handler(req, res) {
       const interaction = await ai.interactions.create({
         model: 'gemini-3.6-flash',
         input: [
-          { type: 'text', text: `You are a friendly financial advisor in Indonesian. The user's expenses this month: ${JSON.stringify(summaryObj)}. Total: ${total}. Write a short, engaging, and friendly financial summary (max 3 paragraphs). Give a tip based on their highest category. IMPORTANT: Do NOT use any Markdown formatting, asterisks (*), or bold text. Use plain text only.` }
+          { type: 'text', text: `You are a friendly financial advisor in Indonesian. The user's expenses this month: ${JSON.stringify(summaryObj)}. Total: ${total}. Write a visually appealing, concise, and professional financial summary for Telegram. FORMAT REQUIREMENTS: Use HTML tags (e.g. <b>bold</b>, <i>italic</i>, <u>underline</u>). Structure the report with line breaks, short punchy paragraphs, and emojis. It must include an opening, a very quick summary, one insightful tip, and a closing. Do NOT make it a massive block of text. IMPORTANT: Do NOT use markdown asterisks (*).` }
         ]
       });
       const content = interaction.output_text ? interaction.output_text.trim() : interaction.text ? interaction.text.trim() : '';
-      await sendMenu(`📊 Laporan Bulanan\n\n${content}`);
+      await sendMenu(`📊 <b>Laporan Bulanan Savora</b>\n\n${content}`);
       return res.status(200).send('OK');
     }
 
@@ -192,11 +198,11 @@ export default async function handler(req, res) {
       const interaction = await ai.interactions.create({
         model: 'gemini-3.6-flash',
         input: [
-          { type: 'text', text: `You are Savora, a friendly Indonesian financial advisor. Answer this concisely: ${question}. IMPORTANT: Do NOT use any Markdown formatting, asterisks (*), or bold text. Use plain text only.` }
+          { type: 'text', text: `You are Savora, a friendly and highly professional Indonesian financial advisor. Answer this concisely: ${question}. FORMAT REQUIREMENTS: Use HTML tags (e.g. <b>bold</b>, <i>italic</i>) for emphasis. Structure your answer with paragraphs and emojis to make it easy to read on Telegram. IMPORTANT: Do NOT use markdown asterisks (*). Use plain text and HTML only.` }
         ]
       });
       const content = interaction.output_text ? interaction.output_text.trim() : interaction.text ? interaction.text.trim() : '';
-      await sendMenu(`💬 Konsultasi Savora\n\n${content}`);
+      await sendMenu(`💬 <b>Konsultasi Savora</b>\n\n${content}`);
       return res.status(200).send('OK');
     }
 
@@ -360,11 +366,11 @@ Return ONLY a valid JSON object without markdown formatting, like this: {"jumlah
           
           const totalSpent = catTxs ? catTxs.reduce((sum, tx) => sum + Number(tx.jumlah), 0) : 0;
           if (totalSpent > matchedCategory.limit_anggaran) {
-            alertMessage = `\n\n⚠️ Peringatan: Pengeluaran kategori ${finalCategoryName} bulan ini (Rp ${totalSpent.toLocaleString('id-ID')}) telah melebihi batas (Rp ${matchedCategory.limit_anggaran.toLocaleString('id-ID')})!`;
+            alertMessage = `\n\n⚠️ <b>Peringatan:</b> Pengeluaran kategori <b>${escapeHTML(finalCategoryName)}</b> bulan ini (<b>Rp ${totalSpent.toLocaleString('id-ID')}</b>) telah melebihi batas (<b>Rp ${matchedCategory.limit_anggaran.toLocaleString('id-ID')}</b>)!`;
           }
         }
 
-        await sendMenu(`✅ Berhasil! Transaksi sebesar Rp ${extractedData.jumlah.toLocaleString('id-ID')} (${transactionData.deskripsi}) telah dicatat ke akun ${finalAccountName}.${alertMessage}`)
+        await sendMenu(`✅ <b>Berhasil!</b> Transaksi sebesar <b>Rp ${extractedData.jumlah.toLocaleString('id-ID')}</b> (<i>${escapeHTML(transactionData.deskripsi)}</i>) telah dicatat ke akun <b>${escapeHTML(finalAccountName)}</b>.${alertMessage}`)
       }
 
       return res.status(200).send('OK')
