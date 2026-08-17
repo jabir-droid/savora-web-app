@@ -123,7 +123,7 @@ export default async function handler(req, res) {
       const base64Image = `data:image/jpeg;base64,${Buffer.from(imageBuffer).toString('base64')}`
 
       // Call Gemini API
-      const aiRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key=${GEMINI_KEY || GROQ_KEY}`, {
+      const aiRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent?key=${GEMINI_KEY || GROQ_KEY}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
