@@ -23,12 +23,44 @@ export default async function handler(req, res) {
   }
 
   const supabase = createClient(SUPABASE_URL, SUPABASE_KEY)
-  const { message } = req.body
+  const { message: originalMessage, callback_query } = req.body
 
-  if (!message) {
+  let processingMessage = originalMessage;
+  let forcedAccount = null;
+
+  if (callback_query) {
+    if (callback_query.data && callback_query.data.startsWith('wallet:')) {
+      forcedAccount = callback_query.data.split(':')[1];
+      processingMessage = callback_query.message.reply_to_message;
+
+      // Answer callback to remove loading state on button
+      await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/answerCallbackQuery`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ callback_query_id: callback_query.id })
+      });
+
+      // Edit message to show we are processing
+      await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/editMessageText`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          chat_id: callback_query.message.chat.id, 
+          message_id: callback_query.message.message_id, 
+          text: `⏳ Memproses nota menggunakan dompet *${forcedAccount}*... Mohon tunggu.`,
+          parse_mode: 'Markdown'
+        })
+      });
+    } else {
+      return res.status(200).send('OK')
+    }
+  }
+
+  if (!processingMessage) {
     return res.status(200).send('OK')
   }
 
+  const message = processingMessage;
   const chatId = message.chat.id
   const text = message.text || ''
 
@@ -104,8 +136,36 @@ export default async function handler(req, res) {
       const accountNamesList = userAccounts ? userAccounts.map(a => a.namaakun).join(', ') : defaultAccount;
       const userCaption = message.caption || '';
 
-      // Acknowledge receipt
-      await sendMessage('⏳ Memproses nota... Mohon tunggu sebentar.')
+      // If no forced account and no caption, show inline keyboard!
+      if (!forcedAccount && !userCaption.trim() && userAccounts && userAccounts.length > 0) {
+        const keyboard = [];
+        for (let i = 0; i < userAccounts.length; i += 2) {
+          const row = [];
+          row.push({ text: userAccounts[i].namaakun, callback_data: `wallet:${userAccounts[i].namaakun}` });
+          if (i + 1 < userAccounts.length) {
+            row.push({ text: userAccounts[i+1].namaakun, callback_data: `wallet:${userAccounts[i+1].namaakun}` });
+          }
+          keyboard.push(row);
+        }
+
+        await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            chat_id: chatId,
+            reply_to_message_id: message.message_id,
+            text: 'Pilih dompet untuk pembayaran ini:',
+            reply_markup: { inline_keyboard: keyboard }
+          })
+        });
+
+        return res.status(200).send('OK');
+      }
+
+      // Acknowledge receipt only if not from callback
+      if (!forcedAccount) {
+        await sendMessage('⏳ Memproses nota... Mohon tunggu sebentar.')
+      }
 
       // Get a medium resolution photo to avoid payload limits (usually index 1 or 2)
       let photoIndex = message.photo.length - 1;
@@ -177,8 +237,9 @@ Return ONLY a valid JSON object without markdown formatting, like this: {"jumlah
       }
 
       // Insert into Savora DB
-      const matchedAccount = (userAccounts || []).find(a => a.namaakun === extractedData.akun) || (userAccounts || []).find(a => a.namaakun === defaultAccount);
-      const finalAccountName = matchedAccount ? matchedAccount.namaakun : (extractedData.akun || defaultAccount);
+      const accountToUse = forcedAccount || extractedData.akun;
+      const matchedAccount = (userAccounts || []).find(a => a.namaakun === accountToUse) || (userAccounts || []).find(a => a.namaakun === defaultAccount);
+      const finalAccountName = matchedAccount ? matchedAccount.namaakun : (accountToUse || defaultAccount);
 
       const transactionData = {
         user_id: userId,
