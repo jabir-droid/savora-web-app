@@ -145,15 +145,15 @@ export default async function handler(req, res) {
 
     // Handle Menu Navigation Clicks
     if (text === '📝 Catat Manual') {
-      await sendMenu('Untuk mencatat pengeluaran tanpa nota, ketik pengeluaran Anda dengan awalan "Catat:".\n\nContoh: *"Catat: Beli bensin 50rb pakai BCA patungan berdua"*');
+      await sendMenu('Untuk mencatat pengeluaran tanpa nota, ketik pengeluaran Anda dengan awalan "Catat:".\n\nContoh: "Catat: Beli bensin 50rb pakai BCA patungan berdua"');
       return res.status(200).send('OK');
     }
     if (text === '💬 Konsultasi AI') {
-      await sendMenu('Untuk konsultasi keuangan, ketik pertanyaan Anda dengan awalan "Tanya:".\n\nContoh: *"Tanya: Bagaimana cara menabung untuk beli motor dengan gaji 3 juta?"*');
+      await sendMenu('Untuk konsultasi keuangan, ketik pertanyaan Anda dengan awalan "Tanya:".\n\nContoh: "Tanya: Bagaimana cara menabung untuk beli motor dengan gaji 3 juta?"');
       return res.status(200).send('OK');
     }
     if (text === 'ℹ️ Bantuan') {
-      await sendMenu('Savora Telegram Bot dapat membantu Anda:\n\n📷 Kirim **foto nota** untuk dicatat otomatis.\n📝 Gunakan **"Catat: [deskripsi]"** untuk mencatat manual.\n💬 Gunakan **"Tanya: [pertanyaan]"** untuk konsultasi AI.\n📊 Tekan **"Laporan Bulan Ini"** untuk ringkasan pengeluaran.');
+      await sendMenu('Savora Telegram Bot dapat membantu Anda:\n\n📷 Kirim foto nota untuk dicatat otomatis.\n📝 Gunakan "Catat: [deskripsi]" untuk mencatat manual.\n💬 Gunakan "Tanya: [pertanyaan]" untuk konsultasi AI.\n📊 Tekan "Laporan Bulan Ini" untuk ringkasan pengeluaran.');
       return res.status(200).send('OK');
     }
 
@@ -176,11 +176,11 @@ export default async function handler(req, res) {
       const interaction = await ai.interactions.create({
         model: 'gemini-3.6-flash',
         input: [
-          { type: 'text', text: `You are a friendly financial advisor in Indonesian. The user's expenses this month: ${JSON.stringify(summaryObj)}. Total: ${total}. Write a short, engaging, and friendly financial summary (max 3 paragraphs). Give a tip based on their highest category.` }
+          { type: 'text', text: `You are a friendly financial advisor in Indonesian. The user's expenses this month: ${JSON.stringify(summaryObj)}. Total: ${total}. Write a short, engaging, and friendly financial summary (max 3 paragraphs). Give a tip based on their highest category. IMPORTANT: Do NOT use any Markdown formatting, asterisks (*), or bold text. Use plain text only.` }
         ]
       });
       const content = interaction.output_text ? interaction.output_text.trim() : interaction.text ? interaction.text.trim() : '';
-      await sendMenu(`📊 **Laporan Bulanan**\n\n${content}`);
+      await sendMenu(`📊 Laporan Bulanan\n\n${content}`);
       return res.status(200).send('OK');
     }
 
@@ -192,11 +192,11 @@ export default async function handler(req, res) {
       const interaction = await ai.interactions.create({
         model: 'gemini-3.6-flash',
         input: [
-          { type: 'text', text: `You are Savora, a friendly Indonesian financial advisor. Answer this concisely: ${question}` }
+          { type: 'text', text: `You are Savora, a friendly Indonesian financial advisor. Answer this concisely: ${question}. IMPORTANT: Do NOT use any Markdown formatting, asterisks (*), or bold text. Use plain text only.` }
         ]
       });
       const content = interaction.output_text ? interaction.output_text.trim() : interaction.text ? interaction.text.trim() : '';
-      await sendMenu(`💬 **Konsultasi Savora**\n\n${content}`);
+      await sendMenu(`💬 Konsultasi Savora\n\n${content}`);
       return res.status(200).send('OK');
     }
 
@@ -360,7 +360,7 @@ Return ONLY a valid JSON object without markdown formatting, like this: {"jumlah
           
           const totalSpent = catTxs ? catTxs.reduce((sum, tx) => sum + Number(tx.jumlah), 0) : 0;
           if (totalSpent > matchedCategory.limit_anggaran) {
-            alertMessage = `\n\n⚠️ *Peringatan*: Pengeluaran kategori ${finalCategoryName} bulan ini (Rp ${totalSpent.toLocaleString('id-ID')}) telah melebihi batas (Rp ${matchedCategory.limit_anggaran.toLocaleString('id-ID')})!`;
+            alertMessage = `\n\n⚠️ Peringatan: Pengeluaran kategori ${finalCategoryName} bulan ini (Rp ${totalSpent.toLocaleString('id-ID')}) telah melebihi batas (Rp ${matchedCategory.limit_anggaran.toLocaleString('id-ID')})!`;
           }
         }
 
