@@ -134,6 +134,15 @@ export default async function handler(req, res) {
         .eq('user_id', userId)
 
       const accountNamesList = userAccounts ? userAccounts.map(a => a.namaakun).join(', ') : defaultAccount;
+      
+      // Fetch user categories to allow AI to guess the category
+      const { data: userCategories } = await supabase
+        .from('categories')
+        .select('namakategori')
+        .eq('user_id', userId)
+        
+      const categoryNamesList = userCategories && userCategories.length > 0 ? userCategories.map(c => c.namakategori).join(', ') : 'Lainnya';
+
       const userCaption = message.caption || '';
 
       // If no forced account and no caption, show inline keyboard!
@@ -205,7 +214,8 @@ export default async function handler(req, res) {
 Also, determine the account to use for payment based on the user's caption: "${userCaption}". 
 Valid accounts are: [${accountNamesList}]. 
 If the caption mentions an account, pick the closest match from the valid accounts list. If no caption is provided or no match is found, return exactly "${defaultAccount}".
-Return ONLY a valid JSON object without markdown formatting, like this: {"jumlah": 50000, "deskripsi": "Makan Siang KFC", "akun": "${defaultAccount}"}. Ensure jumlah is a plain integer number.`
+Also, guess the most appropriate category for this purchase from this list: [${categoryNamesList}]. If nothing fits, pick "Lainnya".
+Return ONLY a valid JSON object without markdown formatting, like this: {"jumlah": 50000, "deskripsi": "Makan Siang KFC", "akun": "${defaultAccount}", "kategori": "Makan"}. Ensure jumlah is a plain integer number.`
             },
             {
               type: 'image',
@@ -241,10 +251,13 @@ Return ONLY a valid JSON object without markdown formatting, like this: {"jumlah
       const matchedAccount = (userAccounts || []).find(a => a.namaakun === accountToUse) || (userAccounts || []).find(a => a.namaakun === defaultAccount);
       const finalAccountName = matchedAccount ? matchedAccount.namaakun : (accountToUse || defaultAccount);
 
+      const matchedCategory = (userCategories || []).find(c => c.namakategori === extractedData.kategori);
+      const finalCategoryName = matchedCategory ? matchedCategory.namakategori : 'Lainnya';
+
       const transactionData = {
         user_id: userId,
         tipe: 'Pengeluaran',
-        kategori: 'Lainnya', // Default category since AI doesn't categorize perfectly yet
+        kategori: finalCategoryName,
         jumlah: extractedData.jumlah,
         deskripsi: extractedData.deskripsi || 'Nota Otomatis',
         akun: finalAccountName,
