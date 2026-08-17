@@ -73,13 +73,32 @@ export default async function handler(req, res) {
     })
   }
 
+  // Utility to send persistent menu
+  const sendMenu = async (text) => {
+    await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ 
+        chat_id: chatId, 
+        text,
+        reply_markup: {
+          keyboard: [
+            [{ text: '📝 Catat Manual' }, { text: '📊 Laporan Bulan Ini' }],
+            [{ text: '💬 Konsultasi AI' }, { text: 'ℹ️ Bantuan' }]
+          ],
+          resize_keyboard: true,
+          is_persistent: true
+        }
+      })
+    })
+  }
+
   try {
     // 1. Handle Account Linking (/start SAVORA-XXXXX)
     if (text.startsWith('/start SAVORA-')) {
-      const fullCode = text.split(' ')[1] // e.g. "SAVORA-88356"
-      const code = fullCode.replace('SAVORA-', '') // e.g. "88356"
+      const fullCode = text.split(' ')[1] 
+      const code = fullCode.replace('SAVORA-', '') 
       
-      // Find user with this link code
       const { data: users, error: searchErr } = await supabase
         .from('user_settings')
         .select('user_id')
@@ -91,7 +110,6 @@ export default async function handler(req, res) {
         return res.status(200).send('OK')
       }
 
-      // Update user_settings with telegram_chat_id and clear the code
       const userId = users[0].user_id
       const { error: updateErr } = await supabase
         .from('user_settings')
@@ -105,29 +123,89 @@ export default async function handler(req, res) {
         console.error("Update error:", updateErr)
         await sendMessage('❌ Gagal menautkan akun. Silakan coba lagi nanti.')
       } else {
-        await sendMessage('✅ Akun Savora Anda berhasil dihubungkan! Sekarang Anda bisa mengirim foto nota ke chat ini untuk dicatat otomatis sebagai Pengeluaran.')
+        await sendMenu('✅ Akun Savora Anda berhasil dihubungkan!\n\nSekarang Anda bisa mengirim foto nota langsung, atau menggunakan menu di bawah untuk fitur lainnya.')
       }
       return res.status(200).send('OK')
     }
 
-    // 2. Handle Receipt Photo
-    if (message.photo && message.photo.length > 0) {
-      // Check if user is linked
-      const { data: linkedUsers, error: linkErr } = await supabase
-        .from('user_settings')
-        .select('user_id, default_account')
-        .eq('telegram_chat_id', chatId.toString())
-        .limit(1)
+    // For all other features, check if user is linked
+    const { data: linkedUsers, error: linkErr } = await supabase
+      .from('user_settings')
+      .select('user_id, default_account')
+      .eq('telegram_chat_id', chatId.toString())
+      .limit(1)
 
-      if (linkErr || !linkedUsers || linkedUsers.length === 0) {
-        await sendMessage('⚠️ Akun Telegram Anda belum dihubungkan dengan Savora. Silakan atur di menu Pengaturan Savora terlebih dahulu.')
-        return res.status(200).send('OK')
+    if (linkErr || !linkedUsers || linkedUsers.length === 0) {
+      await sendMessage('⚠️ Akun Telegram Anda belum dihubungkan dengan Savora. Silakan atur di menu Pengaturan Savora terlebih dahulu.')
+      return res.status(200).send('OK')
+    }
+
+    const userId = linkedUsers[0].user_id
+    const defaultAccount = linkedUsers[0].default_account || 'Dompet' 
+
+    // Handle Menu Navigation Clicks
+    if (text === '📝 Catat Manual') {
+      await sendMenu('Untuk mencatat pengeluaran tanpa nota, ketik pengeluaran Anda dengan awalan "Catat:".\n\nContoh: *"Catat: Beli bensin 50rb pakai BCA patungan berdua"*');
+      return res.status(200).send('OK');
+    }
+    if (text === '💬 Konsultasi AI') {
+      await sendMenu('Untuk konsultasi keuangan, ketik pertanyaan Anda dengan awalan "Tanya:".\n\nContoh: *"Tanya: Bagaimana cara menabung untuk beli motor dengan gaji 3 juta?"*');
+      return res.status(200).send('OK');
+    }
+    if (text === 'ℹ️ Bantuan') {
+      await sendMenu('Savora Telegram Bot dapat membantu Anda:\n\n📷 Kirim **foto nota** untuk dicatat otomatis.\n📝 Gunakan **"Catat: [deskripsi]"** untuk mencatat manual.\n💬 Gunakan **"Tanya: [pertanyaan]"** untuk konsultasi AI.\n📊 Tekan **"Laporan Bulan Ini"** untuk ringkasan pengeluaran.');
+      return res.status(200).send('OK');
+    }
+
+    // Smart Reporting Feature
+    if (text === '📊 Laporan Bulan Ini') {
+      await sendMessage('⏳ Sedang menyusun laporan bulan ini... Mohon tunggu.');
+      const startOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString();
+      const { data: txs } = await supabase.from('transactions').select('kategori, jumlah').eq('user_id', userId).eq('tipe', 'Pengeluaran').gte('created_at', startOfMonth);
+      
+      const summaryObj = {};
+      let total = 0;
+      if (txs) {
+        txs.forEach(t => {
+          summaryObj[t.kategori] = (summaryObj[t.kategori] || 0) + Number(t.jumlah);
+          total += Number(t.jumlah);
+        });
       }
+      
+      const ai = new GoogleGenAI({ apiKey: GEMINI_KEY || GROQ_KEY });
+      const interaction = await ai.interactions.create({
+        model: 'gemini-3.6-flash',
+        input: [
+          { type: 'text', text: `You are a friendly financial advisor in Indonesian. The user's expenses this month: ${JSON.stringify(summaryObj)}. Total: ${total}. Write a short, engaging, and friendly financial summary (max 3 paragraphs). Give a tip based on their highest category.` }
+        ]
+      });
+      const content = interaction.output_text ? interaction.output_text.trim() : interaction.text ? interaction.text.trim() : '';
+      await sendMenu(`📊 **Laporan Bulanan**\n\n${content}`);
+      return res.status(200).send('OK');
+    }
 
-      const userId = linkedUsers[0].user_id
-      const defaultAccount = linkedUsers[0].default_account || 'Dompet' // Fallback account
+    // Consultation Feature
+    if (text.toLowerCase().startsWith('tanya:')) {
+      await sendMessage('⏳ Savora sedang berpikir...');
+      const question = text.substring(6).trim();
+      const ai = new GoogleGenAI({ apiKey: GEMINI_KEY || GROQ_KEY });
+      const interaction = await ai.interactions.create({
+        model: 'gemini-3.6-flash',
+        input: [
+          { type: 'text', text: `You are Savora, a friendly Indonesian financial advisor. Answer this concisely: ${question}` }
+        ]
+      });
+      const content = interaction.output_text ? interaction.output_text.trim() : interaction.text ? interaction.text.trim() : '';
+      await sendMenu(`💬 **Konsultasi Savora**\n\n${content}`);
+      return res.status(200).send('OK');
+    }
 
-      // Fetch all user accounts to allow AI to map caption to correct account
+    // Expense Recording (Photo or Manual Text)
+    const isImage = message.photo && message.photo.length > 0;
+    const isManualExpense = text.toLowerCase().startsWith('catat:');
+
+    if (isImage || isManualExpense) {
+      // Fetch user accounts
       const { data: userAccounts } = await supabase
         .from('accounts')
         .select('id, namaakun, saldo')
@@ -135,18 +213,18 @@ export default async function handler(req, res) {
 
       const accountNamesList = userAccounts ? userAccounts.map(a => a.namaakun).join(', ') : defaultAccount;
       
-      // Fetch user categories to allow AI to guess the category
+      // Fetch user categories to allow AI to guess and for budget alerts
       const { data: userCategories } = await supabase
         .from('categories')
-        .select('namakategori')
+        .select('namakategori, limit_anggaran')
         .eq('user_id', userId)
         
       const categoryNamesList = userCategories && userCategories.length > 0 ? userCategories.map(c => c.namakategori).join(', ') : 'Lainnya';
 
-      const userCaption = message.caption || '';
+      const inputString = isImage ? (message.caption || '') : text.substring(6).trim();
 
-      // If no forced account and no caption, show inline keyboard!
-      if (!forcedAccount && !userCaption.trim() && userAccounts && userAccounts.length > 0) {
+      // Show inline keyboard if no forced account and no explicit caption/text
+      if (!forcedAccount && !inputString.trim() && userAccounts && userAccounts.length > 0) {
         const keyboard = [];
         for (let i = 0; i < userAccounts.length; i += 2) {
           const row = [];
@@ -171,70 +249,58 @@ export default async function handler(req, res) {
         return res.status(200).send('OK');
       }
 
-      // Acknowledge receipt only if not from callback
       if (!forcedAccount) {
-        await sendMessage('⏳ Memproses nota... Mohon tunggu sebentar.')
+        await sendMessage('⏳ Memproses transaksi... Mohon tunggu sebentar.')
       }
 
-      // Get a medium resolution photo to avoid payload limits (usually index 1 or 2)
-      let photoIndex = message.photo.length - 1;
-      if (message.photo.length >= 3) {
-        photoIndex = message.photo.length - 2; // Use medium size
-      }
-      const photo = message.photo[photoIndex]
-      const fileId = photo.file_id
-
-      // Get file path from Telegram
-      const fileRes = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/getFile?file_id=${fileId}`)
-      const fileData = await fileRes.json()
-      
-      if (!fileData.ok) {
-        await sendMessage('❌ Gagal mengunduh foto dari Telegram.')
-        return res.status(200).send('OK')
-      }
-
-      const filePath = fileData.result.file_path
-      const fileUrl = `https://api.telegram.org/file/bot${BOT_TOKEN}/${filePath}`
-
-      // Fetch the actual image and convert to base64
-      const imageRes = await fetch(fileUrl)
-      const imageBuffer = await imageRes.arrayBuffer()
-      const base64Image = `data:image/jpeg;base64,${Buffer.from(imageBuffer).toString('base64')}`
-
-      // Call Gemini API
+      const ai = new GoogleGenAI({ apiKey: GEMINI_KEY || GROQ_KEY });
       let extractedData = null;
+
+      const aiPrompt = `You are an intelligent financial parser. Extract the total final amount and a short description (max 5 words). 
+If the user mentions splitting the bill (e.g. 'patungan', 'bagi 3'), divide the total amount accordingly and return ONLY the user's portion in "jumlah". Append "(Patungan)" to "deskripsi".
+Determine the account to use for payment based on the user's input: "${inputString}". 
+Valid accounts are: [${accountNamesList}]. 
+If the input mentions an account, pick the closest match. If no match is found, return exactly "${defaultAccount}".
+Guess the most appropriate category for this purchase from this list: [${categoryNamesList}]. If nothing fits, pick "Lainnya".
+Return ONLY a valid JSON object without markdown formatting, like this: {"jumlah": 50000, "deskripsi": "Makan Siang KFC", "akun": "${defaultAccount}", "kategori": "Makan"}. Ensure jumlah is a plain integer number.`;
+
+      const inputPayload = [];
+      if (isImage) {
+        let photoIndex = message.photo.length - 1;
+        if (message.photo.length >= 3) {
+          photoIndex = message.photo.length - 2; 
+        }
+        const fileId = message.photo[photoIndex].file_id
+        const fileRes = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/getFile?file_id=${fileId}`)
+        const fileData = await fileRes.json()
+        
+        if (!fileData.ok) {
+          await sendMessage('❌ Gagal mengunduh foto dari Telegram.')
+          return res.status(200).send('OK')
+        }
+        
+        const filePath = fileData.result.file_path
+        const fileUrl = `https://api.telegram.org/file/bot${BOT_TOKEN}/${filePath}`
+        const imageRes = await fetch(fileUrl)
+        const imageBuffer = await imageRes.arrayBuffer()
+        
+        inputPayload.push({ type: 'text', text: aiPrompt });
+        inputPayload.push({ type: 'image', mime_type: 'image/jpeg', data: Buffer.from(imageBuffer).toString('base64') });
+      } else {
+        inputPayload.push({ type: 'text', text: aiPrompt + `\n\nUser Input to Parse: ${inputString}` });
+      }
+
       try {
-        const ai = new GoogleGenAI({ apiKey: GEMINI_KEY || GROQ_KEY });
         const interaction = await ai.interactions.create({
           model: 'gemini-3.6-flash',
-          input: [
-            {
-              type: 'text',
-              text: `You are a receipt parser. Extract the total final amount and a short description of the purchase (max 5 words, e.g. "Makan Siang KFC"). 
-Also, determine the account to use for payment based on the user's caption: "${userCaption}". 
-Valid accounts are: [${accountNamesList}]. 
-If the caption mentions an account, pick the closest match from the valid accounts list. If no caption is provided or no match is found, return exactly "${defaultAccount}".
-Also, guess the most appropriate category for this purchase from this list: [${categoryNamesList}]. If nothing fits, pick "Lainnya".
-Return ONLY a valid JSON object without markdown formatting, like this: {"jumlah": 50000, "deskripsi": "Makan Siang KFC", "akun": "${defaultAccount}", "kategori": "Makan"}. Ensure jumlah is a plain integer number.`
-            },
-            {
-              type: 'image',
-              mime_type: 'image/jpeg',
-              data: Buffer.from(imageBuffer).toString('base64')
-            }
-          ]
+          input: inputPayload
         });
 
         const content = interaction.output_text ? interaction.output_text.trim() : interaction.text ? interaction.text.trim() : ''
         
-        if (!content) {
-          throw new Error("Empty response from AI")
-        }
-
+        if (!content) throw new Error("Empty response from AI")
         const jsonMatch = content.match(/\{[\s\S]*\}/)
-        if (jsonMatch) {
-          extractedData = JSON.parse(jsonMatch[0])
-        }
+        if (jsonMatch) extractedData = JSON.parse(jsonMatch[0])
       } catch (err) {
         console.error("AI Error:", err)
         await sendMessage(`❌ Error dari AI: ${err.message || err.toString()}`)
@@ -242,7 +308,7 @@ Return ONLY a valid JSON object without markdown formatting, like this: {"jumlah
       }
 
       if (!extractedData || !extractedData.jumlah) {
-        await sendMessage('❌ Gagal membaca nota. Pastikan foto jelas dan menampilkan total belanja.')
+        await sendMessage('❌ Gagal membaca transaksi. Pastikan foto atau teks jelas.')
         return res.status(200).send('OK')
       }
 
@@ -259,7 +325,7 @@ Return ONLY a valid JSON object without markdown formatting, like this: {"jumlah
         tipe: 'Pengeluaran',
         kategori: finalCategoryName,
         jumlah: extractedData.jumlah,
-        deskripsi: extractedData.deskripsi || 'Nota Otomatis',
+        deskripsi: extractedData.deskripsi || 'Manual/Otomatis',
         akun: finalAccountName,
         created_at: new Date().toISOString()
       }
@@ -272,7 +338,7 @@ Return ONLY a valid JSON object without markdown formatting, like this: {"jumlah
         console.error("DB Insert Error:", insertErr)
         await sendMessage('❌ Terjadi kesalahan saat menyimpan transaksi ke database.')
       } else {
-        // Also update account balance
+        // Update account balance
         if (matchedAccount) {
           const newBalance = Number(matchedAccount.saldo) - Number(extractedData.jumlah)
           await supabase
@@ -281,17 +347,31 @@ Return ONLY a valid JSON object without markdown formatting, like this: {"jumlah
             .eq('id', matchedAccount.id)
         }
 
-        await sendMessage(`✅ Berhasil! Transaksi sebesar Rp ${extractedData.jumlah.toLocaleString('id-ID')} (${transactionData.deskripsi}) telah dicatat ke akun ${finalAccountName}.`)
+        // Budget Alerts
+        let alertMessage = '';
+        if (matchedCategory && matchedCategory.limit_anggaran > 0) {
+          const startOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString();
+          const { data: catTxs } = await supabase.from('transactions')
+            .select('jumlah')
+            .eq('user_id', userId)
+            .eq('kategori', finalCategoryName)
+            .eq('tipe', 'Pengeluaran')
+            .gte('created_at', startOfMonth);
+          
+          const totalSpent = catTxs ? catTxs.reduce((sum, tx) => sum + Number(tx.jumlah), 0) : 0;
+          if (totalSpent > matchedCategory.limit_anggaran) {
+            alertMessage = `\n\n⚠️ *Peringatan*: Pengeluaran kategori ${finalCategoryName} bulan ini (Rp ${totalSpent.toLocaleString('id-ID')}) telah melebihi batas (Rp ${matchedCategory.limit_anggaran.toLocaleString('id-ID')})!`;
+          }
+        }
+
+        await sendMenu(`✅ Berhasil! Transaksi sebesar Rp ${extractedData.jumlah.toLocaleString('id-ID')} (${transactionData.deskripsi}) telah dicatat ke akun ${finalAccountName}.${alertMessage}`)
       }
 
       return res.status(200).send('OK')
     }
 
-    // Unrecognized text message
-    if (text) {
-      await sendMessage('Halo! 👋 Saya adalah bot Savora AI. Kirimkan foto nota Anda ke sini, dan saya akan mencatatnya otomatis di aplikasi Savora!')
-    }
-
+    // Fallback for random unformatted text
+    await sendMenu('Halo! 👋 Saya adalah bot Savora AI.\n\nKirimkan foto nota untuk dicatat otomatis, atau pilih menu di bawah ini untuk menggunakan fitur lainnya.');
     return res.status(200).send('OK')
 
   } catch (error) {
