@@ -127,20 +127,29 @@ export default async function handler(req, res) {
       let extractedData = null;
       try {
         const ai = new GoogleGenAI({ apiKey: GEMINI_KEY || GROQ_KEY });
-        const response = await ai.models.generateContent({
+        const interaction = await ai.interactions.create({
           model: 'gemini-2.0-flash',
-          contents: [
-            { text: 'You are a receipt parser. Extract the total final amount and a short description of the purchase (max 5 words, e.g. "Makan Siang KFC"). Return ONLY a valid JSON object without markdown formatting, like this: {"jumlah": 50000, "deskripsi": "Makan Siang KFC"}. Ensure jumlah is a plain integer number.' },
+          input: [
             {
-              inlineData: {
-                mimeType: 'image/jpeg',
-                data: Buffer.from(imageBuffer).toString('base64')
-              }
+              type: 'user_input',
+              content: [
+                {
+                  type: 'text',
+                  text: 'You are a receipt parser. Extract the total final amount and a short description of the purchase (max 5 words, e.g. "Makan Siang KFC"). Return ONLY a valid JSON object without markdown formatting, like this: {"jumlah": 50000, "deskripsi": "Makan Siang KFC"}. Ensure jumlah is a plain integer number.'
+                },
+                {
+                  type: 'image',
+                  inlineData: {
+                    mimeType: 'image/jpeg',
+                    data: Buffer.from(imageBuffer).toString('base64')
+                  }
+                }
+              ]
             }
           ]
         });
 
-        const content = response.text ? response.text.trim() : ''
+        const content = interaction.output_text ? interaction.output_text.trim() : interaction.text ? interaction.text.trim() : ''
         
         if (!content) {
           throw new Error("Empty response from AI")

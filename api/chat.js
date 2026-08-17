@@ -32,12 +32,12 @@ export default async function handler(req, res) {
 
   try {
     const ai = new GoogleGenAI({ apiKey: GEMINI_KEY })
-    const response = await ai.models.generateContent({
+    const interaction = await ai.interactions.create({
       model: 'gemini-2.0-flash',
-      contents: systemInstruction ? `${systemInstruction}\n\nUser: ${message}` : message
+      input: systemInstruction ? `${systemInstruction}\n\nUser: ${message}` : message
     })
 
-    const content = response.text ? response.text.trim() : ''
+    const content = interaction.output_text ? interaction.output_text.trim() : interaction.text ? interaction.text.trim() : ''
     if (!content) {
       throw new Error('Empty response from AI')
     }
