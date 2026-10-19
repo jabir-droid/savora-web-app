@@ -138,8 +138,10 @@ export default function Settings() {
         </div>
       </div>
 
-      {/* Summary Stats */}
-      <div className="bg-white rounded-3xl p-5 shadow-sm border border-slate-100 flex justify-between">
+      {/* Summary Stats — cakupan: seluruh akun */}
+      <div className="bg-white rounded-3xl p-5 shadow-sm border border-slate-100">
+      <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider text-center mb-3">{t('dashboard.semua_rekening')}</p>
+      <div className="flex justify-between">
         <div className="flex flex-col items-center flex-1">
           <i className="fa-solid fa-receipt text-emerald-500 mb-2 text-lg"></i>
           <span className="font-extrabold text-slate-800">{summary.transactions}</span>
@@ -157,6 +159,7 @@ export default function Settings() {
           <span className="font-extrabold text-slate-800">{settings.currency === 'USD' ? '$' : 'Rp'}{formatCompactNumber(summary.expense)}</span>
           <span className="text-[10px] text-slate-400 font-semibold uppercase mt-0.5">Pengeluaran</span>
         </div>
+      </div>
       </div>
 
       {/* Settings Menu List */}

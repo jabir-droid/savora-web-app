@@ -6,6 +6,7 @@ import { SkeletonCard, SkeletonList } from './SkeletonLoader'
 import { useToast } from '../contexts/ToastContext'
 import { formatCurrency, formatNumberInput, parseNumberInput } from '../utils/formatCurrency'
 import { triggerHaptic } from '../utils/haptics'
+import ConfirmModal from './modals/ConfirmModal'
 
 export default function Debts() {
   const { t } = useLanguage()
@@ -18,6 +19,7 @@ export default function Debts() {
   const [isLoading, setIsLoading] = useState(true)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [activeDebtToPay, setActiveDebtToPay] = useState(null)
+  const [confirmModal, setConfirmModal] = useState({ isOpen: false, item: null })
   
   // Payment Form State
   const [payAmount, setPayAmount] = useState('')
@@ -78,18 +80,23 @@ export default function Debts() {
     }
   }
 
-  const handleDelete = async (id) => {
-    if (window.confirm(t('debts.delete_confirm'))) {
-      try {
-        await debtService.deleteDebt(id)
-        showToast(t('debts.delete_success'), 'success')
-        triggerHaptic([50, 50])
-        loadDebts()
-      } catch (error) {
-        showToast(t('debts.delete_fail'), 'error')
-      }
+  const handleDelete = async () => {
+    const debt = confirmModal.item
+    if (!debt) return
+    try {
+      await debtService.deleteDebt(debt.id)
+      showToast(t('debts.delete_success'), 'success')
+      triggerHaptic([50, 50])
+      setConfirmModal({ isOpen: false, item: null })
+      loadDebts()
+    } catch (error) {
+      showToast(t('debts.delete_fail'), 'error')
     }
   }
+
+  // Tab Aktif hanya berisi yang belum lunas; yang lunas ada di tab Lunas
+  const activeDebts = debts.filter(d => d.status !== 'Lunas')
+  const lunasDebts = debts.filter(d => d.status === 'Lunas')
 
   const handlePay = (debt) => {
     setActiveDebtToPay(debt)
@@ -143,6 +150,12 @@ export default function Debts() {
         >
           {t('debts.tab_history')}
         </button>
+        <button 
+          onClick={() => setActiveTab('lunas')} 
+          className={`px-4 py-2 rounded-xl text-xs transition ${activeTab === 'lunas' ? 'font-bold bg-white text-savora-900 shadow-sm' : 'font-medium text-slate-500 hover:text-slate-800'}`}
+        >
+          {t('debts.tab_lunas')}
+        </button>
       </div>
 
       {isLoading ? (
@@ -153,7 +166,7 @@ export default function Debts() {
           </div>
         </section>
       ) : activeTab === 'active' ? (
-        debts.length === 0 ? (
+        activeDebts.length === 0 ? (
         <div className="bg-white rounded-3xl p-12 text-center border border-slate-200/60 shadow-sm">
           <div className="w-16 h-16 bg-slate-50 rounded-2xl flex items-center justify-center mx-auto mb-4 text-slate-300">
             <i className="fa-solid fa-handshake text-3xl"></i>
@@ -163,7 +176,7 @@ export default function Debts() {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {debts.map(debt => {
+          {activeDebts.map(debt => {
             const isLunas = debt.status === 'Lunas'
             const sisa = Number(debt.jumlah) - Number(debt.terbayar)
             
@@ -206,7 +219,7 @@ export default function Debts() {
                     {t('debts.btn_pay')}
                   </button>
                   <button 
-                    onClick={() => handleDelete(debt.id)}
+                    onClick={() => setConfirmModal({ isOpen: true, item: debt })}
                     className="w-10 flex items-center justify-center bg-slate-50 hover:bg-rose-50 text-slate-400 hover:text-rose-500 rounded-xl transition"
                   >
                     <i className="fa-regular fa-trash-can"></i>
@@ -216,7 +229,40 @@ export default function Debts() {
             )
           })}
         </div>
-      ) ) : (
+      ) ) : activeTab === 'lunas' ? (
+        lunasDebts.length === 0 ? (
+          <div className="bg-white rounded-3xl p-12 text-center border border-slate-200/60 shadow-sm">
+            <div className="w-16 h-16 bg-slate-50 rounded-2xl flex items-center justify-center mx-auto mb-4 text-slate-300">
+              <i className="fa-solid fa-circle-check text-3xl"></i>
+            </div>
+            <h3 className="font-bold text-slate-800 mb-1">{t('debts.empty_lunas_title')}</h3>
+            <p className="text-sm text-slate-500">{t('debts.empty_lunas_desc')}</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {lunasDebts.map(debt => (
+              <div key={debt.id} className="bg-white rounded-2xl p-5 border border-slate-200/60 shadow-sm flex items-center justify-between">
+                <div>
+                  <div className="flex items-center gap-2 mb-1.5">
+                    <span className={`text-[10px] font-bold px-2 py-1 rounded-lg uppercase ${debt.tipe === 'Hutang' ? 'bg-rose-50 text-rose-600' : 'bg-emerald-50 text-emerald-600'}`}>
+                      {debt.tipe}
+                    </span>
+                    <span className="text-xs font-semibold text-emerald-500">{t('debts.status_lunas')}</span>
+                  </div>
+                  <h4 className="font-extrabold text-slate-800">{debt.nama_pihak}</h4>
+                  <p className="text-xs text-slate-500 mt-1">{formatCurrency(debt.jumlah)}</p>
+                </div>
+                <button
+                  onClick={() => setConfirmModal({ isOpen: true, item: debt })}
+                  className="w-10 h-10 flex items-center justify-center bg-slate-50 hover:bg-rose-50 text-slate-400 hover:text-rose-500 rounded-xl transition shrink-0"
+                >
+                  <i className="fa-regular fa-trash-can"></i>
+                </button>
+              </div>
+            ))}
+          </div>
+        )
+      ) : (
         // History View
         <div className="bg-white rounded-2xl border border-slate-200/60 shadow-sm overflow-hidden">
           {debtHistory.length === 0 ? (
@@ -337,6 +383,16 @@ export default function Debts() {
           </div>
         </div>
       )}
+
+      <ConfirmModal
+        isOpen={confirmModal.isOpen}
+        onClose={() => setConfirmModal({ isOpen: false, item: null })}
+        onConfirm={handleDelete}
+        title={t('debts.delete_confirm').replace('?', '')}
+        message={t('debts.delete_confirm')}
+        confirmText="Hapus"
+        cancelText="Batal"
+      />
     </section>
   )
 }

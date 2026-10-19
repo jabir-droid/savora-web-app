@@ -100,6 +100,18 @@ export default function App() {
     }
   }
 
+  // Petakan pesan error mentah Supabase ke Bahasa Indonesia yang ramah (tetap generik agar tidak membocorkan info akun)
+  const localizeAuthError = (message) => {
+    const m = (message || '').toLowerCase()
+    if (m.includes('invalid login credentials')) return 'Email atau password salah. Silakan coba lagi.'
+    if (m.includes('email not confirmed')) return 'Email belum diverifikasi. Silakan periksa kotak masuk email Anda.'
+    if (m.includes('user already registered') || m.includes('already exists')) return 'Email sudah terdaftar. Silakan masuk.'
+    if (m.includes('password should be at least')) return 'Password minimal 6 karakter.'
+    if (m.includes('network') || m.includes('fetch failed') || m.includes('failed to fetch')) return 'Gangguan jaringan. Periksa koneksi internet Anda lalu coba lagi.'
+    if (m.includes('too many requests') || m.includes('rate limit')) return 'Terlalu banyak percobaan. Tunggu beberapa saat lalu coba lagi.'
+    return 'Terjadi kesalahan saat autentikasi. Silakan coba lagi.'
+  }
+
   const handleAuth = async (e) => {
     e.preventDefault()
     setIsLoading(true)
@@ -114,7 +126,7 @@ export default function App() {
         showToast('Pendaftaran berhasil! Silakan masuk.', 'success')
       }
     } catch (error) {
-      showToast(error.message, 'error')
+      showToast(localizeAuthError(error.message), 'error')
     } finally {
       setIsLoading(false)
     }

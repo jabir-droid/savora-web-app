@@ -83,16 +83,20 @@ export default function SecurityModal({ isOpen, onClose, initialSettings, onSett
               </label>
             </div>
 
-            <div className="bg-slate-50 border border-slate-100 rounded-2xl p-4">
-              <h4 className="font-bold text-xs text-slate-600 mb-3">{t('settings.lbl_change_pin')}</h4>
-              <div className="flex gap-2">
-                <input type="password" value={newPin} onChange={e => setNewPin(e.target.value)} maxLength="4" placeholder="PIN (4 digit)"
-                  className="flex-1 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-emerald-500 bg-white" />
-                <button onClick={handleSavePin} disabled={isSaving || newPin.length !== 4} className="bg-emerald-500 hover:bg-emerald-600 disabled:bg-slate-300 text-white text-xs font-bold px-5 py-2.5 rounded-xl transition shadow">
-                  {t('settings.btn_save')}
-                </button>
+            {settings.is_pin_enabled ? (
+              <div className="bg-slate-50 border border-slate-100 rounded-2xl p-4">
+                <h4 className="font-bold text-xs text-slate-600 mb-3">{t('settings.lbl_change_pin')}</h4>
+                <div className="flex gap-2">
+                  <input type="password" autoComplete="new-password" value={newPin} onChange={e => setNewPin(e.target.value)} maxLength="4" placeholder="PIN (4 digit)"
+                    className="flex-1 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-emerald-500 bg-white" />
+                  <button onClick={handleSavePin} disabled={isSaving || newPin.length !== 4} className="bg-emerald-500 hover:bg-emerald-600 disabled:bg-slate-300 text-white text-xs font-bold px-5 py-2.5 rounded-xl transition shadow">
+                    {t('settings.btn_save')}
+                  </button>
+                </div>
               </div>
-            </div>
+            ) : (
+              <p className="text-xs text-slate-400 bg-slate-50 border border-slate-100 rounded-2xl p-4">{t('settings.pin_disabled_hint')}</p>
+            )}
           </div>
 
 

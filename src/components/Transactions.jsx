@@ -27,10 +27,40 @@ export default function Transactions() {
     return (saved && saved !== 'null') ? saved : 'Semua'
   })
   const [sort, setSort] = useState('Terbaru')
+  const [filterDateFrom, setFilterDateFrom] = useState('')
+  const [filterDateTo, setFilterDateTo] = useState('')
+  const [currentPage, setCurrentPage] = useState(1)
+  const ITEMS_PER_PAGE = 25
 
   const handleFilterAccountChange = (val) => {
     setFilterAccount(val)
     sessionStorage.setItem('savora_active_account', val === 'Semua' ? 'null' : val)
+  }
+
+  // Preset rentang tanggal: today / week / month / all
+  const applyPreset = (preset) => {
+    const today = new Date()
+    const fmt = (d) => {
+      const tz = d.getTimezoneOffset() * 60000
+      return new Date(d - tz).toISOString().slice(0, 10)
+    }
+    if (preset === 'today') {
+      const s = fmt(today)
+      setFilterDateFrom(s)
+      setFilterDateTo(s)
+    } else if (preset === 'week') {
+      const d = new Date(today)
+      d.setDate(d.getDate() - 6)
+      setFilterDateFrom(fmt(d))
+      setFilterDateTo(fmt(today))
+    } else if (preset === 'month') {
+      const d = new Date(today.getFullYear(), today.getMonth(), 1)
+      setFilterDateFrom(fmt(d))
+      setFilterDateTo(fmt(today))
+    } else {
+      setFilterDateFrom('')
+      setFilterDateTo('')
+    }
   }
 
   const loadData = async () => {
@@ -48,6 +78,11 @@ export default function Transactions() {
   useEffect(() => {
     loadData()
   }, [])
+
+  // Reset ke halaman 1 setiap kali filter berubah
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [search, filterType, filterCategory, filterAccount, filterDateFrom, filterDateTo, sort])
 
   const handleDelete = async () => {
     const tx = confirmModal.item
@@ -113,7 +148,9 @@ export default function Transactions() {
     const matchType = filterType === 'Semua' || tx.tipe === filterType
     const matchCat = filterCategory === 'Semua' || tx.kategori === filterCategory
     const matchAcc = filterAccount === 'Semua' || tx.akun === filterAccount || tx.transferke === filterAccount
-    return matchSearch && matchType && matchCat && matchAcc
+    const matchDateFrom = !filterDateFrom || new Date(tx.created_at) >= new Date(filterDateFrom + 'T00:00:00')
+    const matchDateTo = !filterDateTo || new Date(tx.created_at) <= new Date(filterDateTo + 'T23:59:59')
+    return matchSearch && matchType && matchCat && matchAcc && matchDateFrom && matchDateTo
   }).sort((a, b) => {
     if (sort === 'Terbaru') return new Date(b.created_at) - new Date(a.created_at)
     if (sort === 'Terlama') return new Date(a.created_at) - new Date(b.created_at)
@@ -121,6 +158,14 @@ export default function Transactions() {
     if (sort === 'Terendah') return a.jumlah - b.jumlah
     return 0
   })
+
+  // --- Pagination ---
+  const totalPages = Math.max(1, Math.ceil(filteredTransactions.length / ITEMS_PER_PAGE))
+  const safePage = Math.min(currentPage, totalPages)
+  const paginatedTransactions = filteredTransactions.slice((safePage - 1) * ITEMS_PER_PAGE, safePage * ITEMS_PER_PAGE)
+  const pageStart = Math.max(1, Math.min(safePage - 2, totalPages - 4))
+  const pageNumbers = []
+  for (let i = pageStart; i <= Math.min(pageStart + 4, totalPages); i++) pageNumbers.push(i)
 
   if (isLoading) {
     return (
@@ -150,7 +195,22 @@ export default function Transactions() {
         </div>
 
         {showFilter && (
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-3 bg-slate-50 p-4 rounded-xl border border-slate-200/60 animate-fade-in-sm">
+        <div className="bg-slate-50 p-4 rounded-xl border border-slate-200/60 animate-fade-in-sm space-y-3">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-xs text-slate-500 font-semibold uppercase">{t('tx.period')}:</span>
+          {[
+            { key: 'today', label: t('tx.preset_today') },
+            { key: 'week', label: t('tx.preset_week') },
+            { key: 'month', label: t('tx.preset_month') },
+            { key: 'all', label: t('tx.preset_all') },
+          ].map(p => (
+            <button key={p.key} type="button" onClick={() => applyPreset(p.key)}
+              className="text-xs font-semibold px-3 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-100 text-slate-600 transition">
+              {p.label}
+            </button>
+          ))}
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
           <div>
             <label className="block text-xs text-slate-500 mb-1 font-semibold uppercase">{t('tx.search_desc')}</label>
             <div className="relative">
@@ -197,6 +257,17 @@ export default function Transactions() {
               <option value="Terendah">{t('tx.sort_lowest')}</option>
             </select>
           </div>
+          <div>
+            <label className="block text-xs text-slate-500 mb-1 font-semibold uppercase">{t('tx.date_from')}</label>
+            <input type="date" value={filterDateFrom} onChange={e => setFilterDateFrom(e.target.value)}
+              className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-savora-800" />
+          </div>
+          <div>
+            <label className="block text-xs text-slate-500 mb-1 font-semibold uppercase">{t('tx.date_to')}</label>
+            <input type="date" value={filterDateTo} onChange={e => setFilterDateTo(e.target.value)}
+              className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-savora-800" />
+          </div>
+        </div>
         </div>
         )}
 
@@ -225,7 +296,7 @@ export default function Transactions() {
                   </td>
                 </tr>
               ) : (
-                filteredTransactions.map(tx => (
+                paginatedTransactions.map(tx => (
                   <tr key={tx.id} className="hover:bg-slate-50 transition">
                     <td className="py-3 px-4 whitespace-nowrap">{formatDate(tx.created_at)}</td>
                     <td className="py-3 px-4">
@@ -276,7 +347,7 @@ export default function Transactions() {
                 <p>{t('tx.not_found')}</p>
              </div>
            ) : (
-             filteredTransactions.map(tx => (
+             paginatedTransactions.map(tx => (
                <div key={tx.id} className="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm flex flex-col gap-3">
                  <div className="flex justify-between items-start">
                    <div className="flex items-center gap-2">
@@ -316,6 +387,32 @@ export default function Transactions() {
              ))
            )}
         </div>
+
+        {filteredTransactions.length > 0 && (
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-4 mt-4 border-t border-slate-100">
+            <p className="text-xs text-slate-400">
+              {t('tx.showing')} {(safePage - 1) * ITEMS_PER_PAGE + 1}&ndash;{Math.min(safePage * ITEMS_PER_PAGE, filteredTransactions.length)} {t('tx.of')} {filteredTransactions.length}
+            </p>
+            {totalPages > 1 && (
+              <div className="flex items-center gap-1">
+                <button type="button" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={safePage === 1}
+                  className="w-8 h-8 flex items-center justify-center rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50 disabled:opacity-40 transition text-xs">
+                  <i className="fa-solid fa-chevron-left"></i>
+                </button>
+                {pageNumbers.map(n => (
+                  <button key={n} type="button" onClick={() => setCurrentPage(n)}
+                    className={`w-8 h-8 rounded-lg text-xs font-bold transition ${n === safePage ? 'bg-savora-800 text-white' : 'border border-slate-200 text-slate-600 hover:bg-slate-50'}`}>
+                    {n}
+                  </button>
+                ))}
+                <button type="button" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={safePage === totalPages}
+                  className="w-8 h-8 flex items-center justify-center rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50 disabled:opacity-40 transition text-xs">
+                  <i className="fa-solid fa-chevron-right"></i>
+                </button>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       <ConfirmModal 

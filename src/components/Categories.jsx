@@ -5,6 +5,7 @@ import { useToast } from '../contexts/ToastContext'
 import { useLanguage } from '../contexts/LanguageContext'
 import { CATEGORY_ICONS, getDefaultCategories } from '../utils/categoryIcons'
 import { supabase } from '../supabaseClient'
+import ConfirmModal from './modals/ConfirmModal'
 
 export default function Categories() {
   const { t } = useLanguage()
@@ -14,6 +15,7 @@ export default function Categories() {
   const [tipe, setTipe] = useState('Pengeluaran')
   const [limitAnggaran, setLimitAnggaran] = useState('')
   const [isLoading, setIsLoading] = useState(false)
+  const [confirmModal, setConfirmModal] = useState({ isOpen: false, item: null })
 
   const loadData = async () => {
     try {
@@ -30,12 +32,17 @@ export default function Categories() {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
+    const limitNum = limitAnggaran ? parseNumberInput(limitAnggaran) : null
+    if (limitNum && limitNum > 999000000000) {
+      showToast(`${t('modal_tx.amount_max')} ${formatCurrency(999000000000)}`, 'error')
+      return
+    }
     setIsLoading(true)
     try {
       await categoryService.addCategory({
         namakategori,
         tipe,
-        limit_anggaran: limitAnggaran ? parseNumberInput(limitAnggaran) : null
+        limit_anggaran: limitNum
       })
       showToast(t('cat.add_success'), 'success')
       loadData()
@@ -76,11 +83,13 @@ export default function Categories() {
     }
   }
 
-  const handleDelete = async (id) => {
-    if (!confirm(t('cat.delete_confirm'))) return
+  const handleDelete = async () => {
+    const cat = confirmModal.item
+    if (!cat) return
     try {
-      await categoryService.deleteCategory(id)
+      await categoryService.deleteCategory(cat.id)
       showToast(t('cat.delete_success'), 'success')
+      setConfirmModal({ isOpen: false, item: null })
       loadData()
     } catch (e) {
       showToast(t('cat.delete_fail') + e.message, 'error')
@@ -176,7 +185,7 @@ export default function Categories() {
                     </td>
                     <td className="py-3 px-4 text-right font-mono text-xs">{formatCurrency(cat.limit_anggaran)}</td>
                     <td className="py-3 px-4 text-center">
-                      <button onClick={() => handleDelete(cat.id)} className="text-rose-400 hover:text-rose-600 p-1">
+                      <button onClick={() => setConfirmModal({ isOpen: true, item: cat })} className="text-rose-400 hover:text-rose-600 p-1" title={t('cat.delete_confirm')}>
                         <i className="fa-solid fa-trash-can"></i>
                       </button>
                     </td>
@@ -188,6 +197,15 @@ export default function Categories() {
           </div>
         </div>
       </div>
+      <ConfirmModal
+        isOpen={confirmModal.isOpen}
+        onClose={() => setConfirmModal({ isOpen: false, item: null })}
+        onConfirm={handleDelete}
+        title={t('cat.delete_confirm').replace('?', '')}
+        message={t('cat.delete_confirm')}
+        confirmText="Hapus"
+        cancelText="Batal"
+      />
     </section>
   )
 }

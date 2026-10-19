@@ -304,7 +304,7 @@ export default function Dashboard({ setActiveTab }) {
               <i className="fa-solid fa-arrow-down"></i>
             </span>
             <div className="truncate">
-              <p className="text-slate-400 font-semibold tracking-wider uppercase text-[9px]">{t('dashboard.pemasukan')}</p>
+              <p className="text-slate-400 font-semibold tracking-wider uppercase text-[9px]">{t('dashboard.pemasukan')} • {selectedAccount || t('dashboard.semua_rekening')}</p>
               <p className="font-extrabold text-sm text-emerald-400 truncate">
                 {isBalanceHidden ? '******' : formatCurrency(summary.pemasukan)}
               </p>
@@ -315,7 +315,7 @@ export default function Dashboard({ setActiveTab }) {
               <i className="fa-solid fa-arrow-up"></i>
             </span>
             <div className="truncate">
-              <p className="text-slate-400 font-semibold tracking-wider uppercase text-[9px]">{t('dashboard.pengeluaran')}</p>
+              <p className="text-slate-400 font-semibold tracking-wider uppercase text-[9px]">{t('dashboard.pengeluaran')} • {selectedAccount || t('dashboard.semua_rekening')}</p>
               <p className="font-extrabold text-sm text-rose-400 truncate">
                 {isBalanceHidden ? '******' : formatCurrency(summary.pengeluaran)}
               </p>

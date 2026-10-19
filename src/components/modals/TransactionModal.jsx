@@ -7,7 +7,9 @@ import { useToast } from '../../contexts/ToastContext'
 import { useLanguage } from '../../contexts/LanguageContext'
 import { triggerHaptic } from '../../utils/haptics'
 import { CATEGORY_ICONS } from '../../utils/categoryIcons'
-import { formatNumberInput, parseNumberInput } from '../../utils/formatCurrency'
+import { formatNumberInput, parseNumberInput, formatCurrency } from '../../utils/formatCurrency'
+
+const MAX_NOMINAL = 999000000000 // Rp999 miliar — batas maksimum nominal transaksi
 
 export default function TransactionModal({ isOpen, onClose, onSuccess, initialData }) {
   const { t } = useLanguage()
@@ -90,12 +92,21 @@ export default function TransactionModal({ isOpen, onClose, onSuccess, initialDa
 
   const handleSubmit = async (e) => {
     e.preventDefault()
+    const jumlahNum = parseNumberInput(jumlah)
+    if (!jumlahNum || jumlahNum <= 0) {
+      showToast(t('modal_tx.amount_invalid'), 'error')
+      return
+    }
+    if (jumlahNum > MAX_NOMINAL) {
+      showToast(`${t('modal_tx.amount_max')} ${formatCurrency(MAX_NOMINAL)}`, 'error')
+      return
+    }
     setIsLoading(true)
     try {
       const payload = {
         tipe: tipe === 'Tabungan' ? 'Pengeluaran' : (tipe === 'Transfer Kas' ? 'Transfer' : tipe),
         kategori: tipe === 'Tabungan' ? 'Tabungan' : kategori,
-        jumlah: parseNumberInput(jumlah),
+        jumlah: jumlahNum,
         deskripsi,
         akun,
         transferke: tipe === 'Transfer Kas' ? transferKe : null,

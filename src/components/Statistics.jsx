@@ -80,7 +80,24 @@ export default function Statistics() {
   }, [accounts])
 
   const activeTotal = assetsData.total
-  const healthAdvice = activeTotal > breakdownData.total 
+
+  // Health Index: bandingkan arus kas BULAN BERJALAN (bukan kumulatif sepanjang waktu,
+  // karena total pengeluaran historis wajar melebihi saldo saat ini)
+  const monthlyFlow = useMemo(() => {
+    const now = new Date()
+    let inc = 0, exp = 0
+    transactions.forEach(t => {
+      if (!t.created_at) return
+      const d = new Date(t.created_at)
+      if (d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth()) {
+        if (t.tipe === 'Pemasukan') inc += Number(t.jumlah)
+        else if (t.tipe === 'Pengeluaran') exp += Number(t.jumlah)
+      }
+    })
+    return { inc, exp }
+  }, [transactions])
+
+  const healthAdvice = monthlyFlow.inc >= monthlyFlow.exp
     ? t('stat.health_good')
     : t('stat.health_bad')
 
@@ -162,7 +179,12 @@ export default function Statistics() {
                 </div>
               </div>
               <div className="w-full flex flex-col md:flex-row gap-4 items-center justify-center py-4" style={{ height: 350 }}>
-                {isLoading ? <p className="text-xs text-slate-400 py-10">{t('stat.loading_chart')}</p> : (
+                {isLoading ? <p className="text-xs text-slate-400 py-10">{t('stat.loading_chart')}</p> : breakdownData.categories.length === 0 ? (
+                  <div className="text-center py-10">
+                    <i className="fa-solid fa-chart-pie text-4xl text-slate-200 mb-3"></i>
+                    <p className="text-xs text-slate-400">{t('stat.bd_empty')}</p>
+                  </div>
+                ) : (
                   <>
                     <div className="w-full md:w-1/2 h-full min-h-[250px]">
                       <ResponsiveContainer width="100%" height="100%">
@@ -251,11 +273,17 @@ export default function Statistics() {
             </div>
           </div>
 
-          <div className="mt-6 pt-6 border-t border-slate-700 bg-emerald-900/20 p-4 rounded-xl border border-emerald-900/30 text-xs relative z-10">
+          <div className="mt-6 pt-6 border-t border-slate-700 bg-emerald-900/20 p-4 rounded-xl border border-emerald-900/30 text-xs relative z-10" title={t('stat.health_tooltip')}>
             <h4 className="font-bold text-emerald-400 flex items-center gap-1 mb-1">
               <i className="fa-solid fa-heart-pulse text-emerald-400"></i> {t('stat.health_title')}
+              <i className="fa-solid fa-circle-info text-slate-500 ml-1"></i>
             </h4>
             <p className="text-slate-300 leading-relaxed">{healthAdvice}</p>
+            <p className="text-[10px] text-slate-500 mt-2">
+              {t('stat.health_thismonth')}: <span className="text-emerald-400 font-bold">+{formatCurrency(monthlyFlow.inc)}</span>
+              {' / '}
+              <span className="text-rose-400 font-bold">-{formatCurrency(monthlyFlow.exp)}</span>
+            </p>
           </div>
         </div>
       </div>
