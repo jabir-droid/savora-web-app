@@ -142,6 +142,8 @@ export default function App() {
     if (m.includes('user already registered') || m.includes('already exists')) return 'Email sudah terdaftar. Silakan masuk.'
     if (m.includes('password should be at least')) return 'Password minimal 8 karakter.'
     if (m.includes('breach') || m.includes('pwned') || m.includes('leaked') || m.includes('weak_password') || m.includes('weak password')) return 'Password ini tidak aman atau pernah muncul dalam kebocoran data. Gunakan password lain yang lebih unik.'
+    if (m.includes('email_address_invalid') || (m.includes('email') && m.includes('invalid'))) return 'Format alamat email tidak valid. Periksa kembali alamat email Anda.'
+    if (m.includes('error sending') || m.includes('email rate limit')) return 'Email konfirmasi gagal dikirim saat ini. Silakan coba lagi beberapa saat lagi.'
     if (m.includes('network') || m.includes('fetch failed') || m.includes('failed to fetch')) return 'Gangguan jaringan. Periksa koneksi internet Anda lalu coba lagi.'
     if (m.includes('too many requests') || m.includes('rate limit')) return 'Terlalu banyak percobaan. Tunggu beberapa saat lalu coba lagi.'
     return 'Terjadi kesalahan saat autentikasi. Silakan coba lagi.'
