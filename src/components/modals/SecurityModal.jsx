@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { settingsService } from '../../services/settingsService'
+import { mfaService } from '../../services/mfaService'
+import { useAuth } from '../../contexts/AuthContext'
 import { triggerHaptic } from '../../utils/haptics'
 import { useToast } from '../../contexts/ToastContext'
 import { useLanguage } from '../../contexts/LanguageContext'
@@ -7,16 +9,36 @@ import { useLanguage } from '../../contexts/LanguageContext'
 export default function SecurityModal({ isOpen, onClose, initialSettings, onSettingsChange }) {
   const { t } = useLanguage()
   const { showToast } = useToast()
-  
+  const { user } = useAuth()
+
   const [settings, setSettings] = useState(initialSettings || {})
   const [newPin, setNewPin] = useState('')
   const [isSaving, setIsSaving] = useState(false)
+
+  // --- Verifikasi Dua Langkah (2FA/TOTP) ---
+  const [mfaLoading, setMfaLoading] = useState(true)
+  const [mfaFactor, setMfaFactor] = useState(null)
+  const [enrollData, setEnrollData] = useState(null)
+  const [enrollCode, setEnrollCode] = useState('')
+  const [freshCodes, setFreshCodes] = useState(null)
+  const [mfaBusy, setMfaBusy] = useState(false)
 
   useEffect(() => {
     if (isOpen && initialSettings) {
       setSettings(initialSettings)
     }
   }, [isOpen, initialSettings])
+
+  useEffect(() => {
+    if (!isOpen) return
+    let cancelled = false
+    setMfaLoading(true)
+    mfaService.listVerifiedTotpFactors()
+      .then((factors) => { if (!cancelled) setMfaFactor(factors[0] ?? null) })
+      .catch(() => { if (!cancelled) setMfaFactor(null) })
+      .finally(() => { if (!cancelled) setMfaLoading(false) })
+    return () => { cancelled = true }
+  }, [isOpen])
 
   if (!isOpen) return null
 
@@ -34,6 +56,95 @@ export default function SecurityModal({ isOpen, onClose, initialSettings, onSett
     } catch (e) {
       showToast(t('settings.up_fail') + e.message, 'error')
     }
+  }
+
+  // --- Handler 2FA ---
+  const handleEnroll = async () => {
+    setMfaBusy(true)
+    try {
+      const data = await mfaService.enrollTotp()
+      setEnrollData(data)
+      setEnrollCode('')
+    } catch (e) {
+      showToast(e.message, 'error')
+    } finally {
+      setMfaBusy(false)
+    }
+  }
+
+  const handleVerifyEnroll = async () => {
+    if (!enrollData || !user) return
+    setMfaBusy(true)
+    try {
+      await mfaService.verifyNewFactor(enrollData.id, enrollCode)
+      // 2FA aktif: buat kode pemulihan pertama dan tampilkan sekali
+      const codes = await mfaService.regenerateRecoveryCodes(user.id)
+      setMfaFactor({ id: enrollData.id, status: 'verified' })
+      setEnrollData(null)
+      setEnrollCode('')
+      setFreshCodes(codes)
+      showToast(t('settings.twofa_toast_on'), 'success')
+    } catch {
+      showToast(t('settings.twofa_err_code'), 'error')
+    } finally {
+      setMfaBusy(false)
+    }
+  }
+
+  const handleCancelEnroll = async () => {
+    if (!enrollData) return
+    setMfaBusy(true)
+    try {
+      await mfaService.unenrollFactor(enrollData.id)
+    } catch (e) {
+      // Faktor belum terverifikasi; abaikan kegagalan bersih-bersih
+      console.error(e)
+    } finally {
+      setEnrollData(null)
+      setEnrollCode('')
+      setMfaBusy(false)
+    }
+  }
+
+  const handleRegenerateCodes = async () => {
+    if (!user) return
+    setMfaBusy(true)
+    try {
+      const codes = await mfaService.regenerateRecoveryCodes(user.id)
+      setFreshCodes(codes)
+      showToast(t('settings.twofa_toast_codes'), 'success')
+    } catch (e) {
+      showToast(e.message, 'error')
+    } finally {
+      setMfaBusy(false)
+    }
+  }
+
+  const handleDisableMfa = async () => {
+    if (!mfaFactor) return
+    setMfaBusy(true)
+    try {
+      await mfaService.unenrollFactor(mfaFactor.id)
+      setMfaFactor(null)
+      setFreshCodes(null)
+      showToast(t('settings.twofa_toast_off'), 'success')
+    } catch (e) {
+      if ((e.message || '').toLowerCase().includes('aal')) {
+        showToast(t('settings.twofa_err_disable_aal'), 'error')
+      } else {
+        showToast(e.message, 'error')
+      }
+    } finally {
+      setMfaBusy(false)
+    }
+  }
+
+  const renderQr = (qr) => {
+    if (!qr) return null
+    if (qr.startsWith('data:') || qr.startsWith('http')) {
+      return <img src={qr} alt="QR 2FA" className="w-44 h-44" />
+    }
+    return <div className="w-44 h-44 [&>svg]:w-full [&>svg]:h-full" dangerouslySetInnerHTML={{ __html: qr }} />
   }
 
   const handleSavePin = async () => {
@@ -99,7 +210,70 @@ export default function SecurityModal({ isOpen, onClose, initialSettings, onSett
             )}
           </div>
 
+          {/* Verifikasi Dua Langkah (2FA) */}
+          <div className="border-t border-slate-100 pt-6 space-y-4">
+            <div>
+              <h4 className="font-bold text-sm text-slate-800">{t('settings.twofa_title')}</h4>
+              <p className="text-xs text-slate-400 mt-1">{mfaFactor ? t('settings.twofa_desc_on') : t('settings.twofa_desc_off')}</p>
+            </div>
 
+            {mfaLoading ? (
+              <p className="text-xs text-slate-400">{t('settings.twofa_loading')}</p>
+            ) : freshCodes ? (
+              <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4">
+                <h4 className="font-bold text-xs text-amber-800 mb-2">{t('settings.twofa_codes_title')}</h4>
+                <div className="grid grid-cols-2 gap-2 mb-3">
+                  {freshCodes.map((code) => (
+                    <div key={code} className="bg-white border border-amber-200 rounded-lg px-3 py-2 text-center font-mono font-bold text-sm text-slate-700 tracking-widest">{code}</div>
+                  ))}
+                </div>
+                <p className="text-[11px] text-amber-700 leading-relaxed mb-3">{t('settings.twofa_codes_warning')}</p>
+                <button onClick={() => setFreshCodes(null)} className="w-full bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold px-4 py-2.5 rounded-xl transition shadow">
+                  {t('settings.twofa_btn_codes_done')}
+                </button>
+              </div>
+            ) : mfaFactor ? (
+              <div className="space-y-3">
+                <p className="text-xs font-bold text-emerald-600 bg-emerald-50 border border-emerald-100 rounded-2xl px-4 py-3">{t('settings.twofa_status_active')}</p>
+                <div className="flex gap-2">
+                  <button onClick={handleRegenerateCodes} disabled={mfaBusy} className="flex-1 bg-slate-100 hover:bg-slate-200 disabled:opacity-50 text-slate-700 text-xs font-bold px-4 py-2.5 rounded-xl transition">
+                    {t('settings.twofa_btn_regen')}
+                  </button>
+                  <button onClick={handleDisableMfa} disabled={mfaBusy} className="flex-1 bg-rose-50 hover:bg-rose-100 disabled:opacity-50 text-rose-600 text-xs font-bold px-4 py-2.5 rounded-xl transition">
+                    {t('settings.twofa_btn_disable')}
+                  </button>
+                </div>
+              </div>
+            ) : enrollData ? (
+              <div className="bg-slate-50 border border-slate-100 rounded-2xl p-4 space-y-4">
+                <p className="text-xs text-slate-500">{t('settings.twofa_scan')}</p>
+                <div className="flex justify-center bg-white rounded-2xl p-3 border border-slate-100">
+                  {renderQr(enrollData.qrCode)}
+                </div>
+                <div>
+                  <p className="text-[11px] text-slate-400 mb-1">{t('settings.twofa_secret')}</p>
+                  <p className="font-mono text-xs font-bold text-slate-700 bg-white border border-slate-200 rounded-lg px-3 py-2 break-all select-all">{enrollData.secret}</p>
+                </div>
+                <div>
+                  <p className="text-[11px] text-slate-400 mb-1">{t('settings.twofa_code_label')}</p>
+                  <div className="flex gap-2">
+                    <input type="text" inputMode="numeric" autoComplete="one-time-code" value={enrollCode} onChange={e => setEnrollCode(e.target.value.replace(/\D/g, ''))} maxLength={6} placeholder="••••••"
+                      className="flex-1 border border-slate-200 rounded-xl px-4 py-2.5 text-sm text-center tracking-[0.3em] font-bold focus:outline-none focus:border-emerald-500 bg-white" />
+                    <button onClick={handleVerifyEnroll} disabled={mfaBusy || enrollCode.length !== 6} className="bg-emerald-500 hover:bg-emerald-600 disabled:bg-slate-300 text-white text-xs font-bold px-4 py-2.5 rounded-xl transition shadow">
+                      {t('settings.twofa_btn_verify')}
+                    </button>
+                  </div>
+                </div>
+                <button onClick={handleCancelEnroll} disabled={mfaBusy} className="text-xs text-slate-400 hover:text-rose-500 font-bold transition disabled:opacity-50">
+                  {t('settings.twofa_btn_cancel')}
+                </button>
+              </div>
+            ) : (
+              <button onClick={handleEnroll} disabled={mfaBusy} className="w-full bg-emerald-500 hover:bg-emerald-600 disabled:bg-slate-300 text-white text-xs font-bold px-4 py-3 rounded-xl transition shadow">
+                {t('settings.twofa_btn_enable')}
+              </button>
+            )}
+          </div>
 
           <div className="border-t border-slate-100 pt-6 flex items-center justify-between gap-4">
             <div className="flex-1">

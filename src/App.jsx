@@ -13,6 +13,8 @@ import Debts from './components/Debts'
 import TransactionModal from './components/modals/TransactionModal'
 import NotificationModal from './components/modals/NotificationModal'
 import PinLock from './components/PinLock'
+import MfaChallenge from './components/MfaChallenge'
+import { mfaService } from './services/mfaService'
 import { useAuth } from './contexts/AuthContext'
 import { useLanguage } from './contexts/LanguageContext'
 import { useToast } from './contexts/ToastContext'
@@ -36,6 +38,9 @@ export default function App() {
   
   const [isAppLocked, setIsAppLocked] = useState(false)
   const [isSettingsLoaded, setIsSettingsLoaded] = useState(false)
+  const [pendingVerificationEmail, setPendingVerificationEmail] = useState('')
+  const [mfaGate, setMfaGate] = useState('ok') // 'checking' | 'required' | 'ok'
+  const [mfaFactorId, setMfaFactorId] = useState(null)
   
   const { user, signIn, signUp, signOut } = useAuth()
   const { t, toggleLanguage } = useLanguage()
@@ -64,6 +69,35 @@ export default function App() {
       })
     }
   }, [user, refreshTrigger])
+
+  // Cek kebutuhan verifikasi dua langkah (2FA) setiap sesi berubah.
+  // Jika pengguna punya faktor TOTP terverifikasi dan sesi masih AAL1,
+  // aplikasi menahan akses sampai tantangan 2FA diselesaikan.
+  useEffect(() => {
+    if (!user) {
+      setMfaGate('ok')
+      setMfaFactorId(null)
+      return
+    }
+    let cancelled = false
+    setMfaGate('checking')
+    mfaService.getChallengeRequirement()
+      .then((req) => {
+        if (cancelled) return
+        if (req.required) {
+          setMfaFactorId(req.factorId)
+          setMfaGate('required')
+        } else {
+          setMfaGate('ok')
+        }
+      })
+      .catch((e) => {
+        // Gagal memeriksa (mis. jaringan): jangan kunci pengguna di luar.
+        console.error('Gagal memeriksa status 2FA', e)
+        if (!cancelled) setMfaGate('ok')
+      })
+    return () => { cancelled = true }
+  }, [user])
 
   const fetchUnreadCount = async () => {
     try {
@@ -106,7 +140,8 @@ export default function App() {
     if (m.includes('invalid login credentials')) return 'Email atau password salah. Silakan coba lagi.'
     if (m.includes('email not confirmed')) return 'Email belum diverifikasi. Silakan periksa kotak masuk email Anda.'
     if (m.includes('user already registered') || m.includes('already exists')) return 'Email sudah terdaftar. Silakan masuk.'
-    if (m.includes('password should be at least')) return 'Password minimal 6 karakter.'
+    if (m.includes('password should be at least')) return 'Password minimal 8 karakter.'
+    if (m.includes('breach') || m.includes('pwned') || m.includes('leaked') || m.includes('weak_password') || m.includes('weak password')) return 'Password ini tidak aman atau pernah muncul dalam kebocoran data. Gunakan password lain yang lebih unik.'
     if (m.includes('network') || m.includes('fetch failed') || m.includes('failed to fetch')) return 'Gangguan jaringan. Periksa koneksi internet Anda lalu coba lagi.'
     if (m.includes('too many requests') || m.includes('rate limit')) return 'Terlalu banyak percobaan. Tunggu beberapa saat lalu coba lagi.'
     return 'Terjadi kesalahan saat autentikasi. Silakan coba lagi.'
@@ -114,6 +149,11 @@ export default function App() {
 
   const handleAuth = async (e) => {
     e.preventDefault()
+    // Validasi password hanya untuk pendaftaran; akun lama tetap bisa masuk
+    if (!isLoginMode && password.length < 8) {
+      showToast('Password minimal 8 karakter.', 'error')
+      return
+    }
     setIsLoading(true)
     try {
       if (isLoginMode) {
@@ -121,9 +161,17 @@ export default function App() {
         if (error) throw error
         showToast('Berhasil masuk ke Savora!', 'success')
       } else {
-        const { error } = await signUp(email, password)
+        const { data, error } = await signUp(email, password)
         if (error) throw error
-        showToast('Pendaftaran berhasil! Silakan masuk.', 'success')
+        if (data && !data.session) {
+          // Verifikasi email aktif di server: belum ada sesi sampai tautan
+          // di email diklik. Tampilkan panel "cek email" ke pengguna.
+          setPendingVerificationEmail(email)
+          setIsLoginMode(true)
+          setPassword('')
+        } else {
+          showToast('Pendaftaran berhasil! Silakan masuk.', 'success')
+        }
       }
     } catch (error) {
       showToast(localizeAuthError(error.message), 'error')
@@ -147,6 +195,13 @@ export default function App() {
             <h1 className="text-2xl font-extrabold text-savora-900">Savora</h1>
           </div>
           
+          {pendingVerificationEmail && (
+            <div className="mb-6 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-2xl p-4 text-xs leading-relaxed">
+              <p className="font-bold mb-1">Pendaftaran diterima — verifikasi email Anda</p>
+              <p>Kami sudah mengirim tautan verifikasi ke <span className="font-bold">{pendingVerificationEmail}</span>. Klik tautan di email tersebut, lalu masuk dengan email dan password yang baru saja dibuat.</p>
+            </div>
+          )}
+
           <form className="space-y-4" onSubmit={handleAuth}>
             <div>
               <label className="block text-[11px] font-bold text-savora-900 mb-1.5 ml-1">E-mail</label>
@@ -161,14 +216,18 @@ export default function App() {
             </div>
             <div>
               <label className="block text-[11px] font-bold text-savora-900 mb-1.5 ml-1">Kata sandi</label>
-              <input 
+              <input
                 type="password"
-                required 
+                required
+                minLength={isLoginMode ? undefined : 8}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full bg-slate-50 border border-slate-200 text-slate-800 text-sm rounded-xl focus:ring-1 focus:ring-savora-800 focus:border-savora-800 block p-3 outline-none transition placeholder-slate-400" 
+                className="w-full bg-slate-50 border border-slate-200 text-slate-800 text-sm rounded-xl focus:ring-1 focus:ring-savora-800 focus:border-savora-800 block p-3 outline-none transition placeholder-slate-400"
                 placeholder="••••••••"
               />
+              {!isLoginMode && (
+                <p className="text-[11px] text-slate-400 mt-1.5 ml-1">Minimal 8 karakter. Gunakan password unik yang belum pernah bocor.</p>
+              )}
             </div>
 
             <button 
@@ -180,8 +239,8 @@ export default function App() {
           </form>
 
           <div className="mt-6 text-center">
-            <button 
-              onClick={() => setIsLoginMode(!isLoginMode)} 
+            <button
+              onClick={() => { setIsLoginMode(!isLoginMode); setPendingVerificationEmail('') }}
               className="text-xs text-savora-orange hover:underline font-bold transition"
             >
               {isLoginMode ? 'Belum punya akun? Daftar' : 'Sudah punya akun? Masuk'}
@@ -196,6 +255,19 @@ export default function App() {
   const handleMenuClick = (tab) => {
     setActiveTab(tab)
     setIsMobileMenuOpen(false)
+  }
+
+  // Gerbang verifikasi dua langkah (2FA) — sebelum PIN dan aplikasi utama
+  if (user && mfaGate === 'checking') {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-50 font-sans">
+        <div className="w-10 h-10 border-4 border-savora-200 border-t-savora-800 rounded-full animate-spin"></div>
+      </div>
+    )
+  }
+
+  if (user && mfaGate === 'required') {
+    return <MfaChallenge factorId={mfaFactorId} onVerified={() => setMfaGate('ok')} />
   }
 
   // Tampilan Menunggu Settings / Terkunci PIN

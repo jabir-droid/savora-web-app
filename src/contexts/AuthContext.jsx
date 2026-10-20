@@ -34,6 +34,10 @@ export const AuthProvider = ({ children }) => {
     return await supabase.auth.signUp({
       email,
       password,
+      options: {
+        // Tautan verifikasi di email mengembalikan pengguna ke aplikasi ini
+        emailRedirectTo: window.location.origin,
+      },
     })
   }
 
