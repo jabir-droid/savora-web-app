@@ -1,6 +1,14 @@
 import React, { createContext, useState, useEffect, useContext } from 'react'
 import { supabase } from '../supabaseClient'
 
+// Penanda sesi pemulihan dari tautan email reset: fragment URL hasil
+// verifikasi tautan memuat "type=recovery". Event PASSWORD_RECOVERY dapat
+// terbit sebelum listener React terpasang (klien Supabase memproses fragment
+// lebih dulu), jadi tangkap penandanya di sini — saat modul dimuat,
+// fragment belum dibersihkan dari URL.
+const arrivedViaRecoveryLink =
+  typeof window !== 'undefined' && window.location.hash.includes('type=recovery')
+
 const AuthContext = createContext({})
 
 export const useAuth = () => useContext(AuthContext)
@@ -8,7 +16,7 @@ export const useAuth = () => useContext(AuthContext)
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
-  const [passwordRecovery, setPasswordRecovery] = useState(false)
+  const [passwordRecovery, setPasswordRecovery] = useState(arrivedViaRecoveryLink)
 
   useEffect(() => {
     // Mengecek sesi saat ini saat aplikasi dimuat
