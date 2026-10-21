@@ -69,7 +69,8 @@ export const transactionService = {
     const insertData = {
       user_id: user.id,
       tipe: payload.tipe,
-      kategori: payload.kategori,
+      // Invariant model data: transaksi Transfer selalu berkategori 'Transfer'
+      kategori: payload.tipe === 'Transfer' ? 'Transfer' : payload.kategori,
       jumlah: payload.jumlah,
       deskripsi: payload.deskripsi,
       akun: payload.akun,
@@ -173,7 +174,8 @@ export const transactionService = {
     // 2. Update transaction row
     const updateData = {
       tipe: newTx.tipe,
-      kategori: newTx.kategori,
+      // Invariant model data: transaksi Transfer selalu berkategori 'Transfer'
+      kategori: newTx.tipe === 'Transfer' ? 'Transfer' : newTx.kategori,
       jumlah: newTx.jumlah,
       deskripsi: newTx.deskripsi,
       akun: newTx.akun,

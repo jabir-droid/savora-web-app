@@ -105,7 +105,9 @@ export default function TransactionModal({ isOpen, onClose, onSuccess, initialDa
     try {
       const payload = {
         tipe: tipe === 'Tabungan' ? 'Pengeluaran' : (tipe === 'Transfer Kas' ? 'Transfer' : tipe),
-        kategori: tipe === 'Tabungan' ? 'Tabungan' : kategori,
+        // Transfer antar-kas selalu berkategori 'Transfer' agar tidak
+        // mengacaukan laporan kategori pemasukan/pengeluaran.
+        kategori: tipe === 'Tabungan' ? 'Tabungan' : (tipe === 'Transfer Kas' ? 'Transfer' : kategori),
         jumlah: jumlahNum,
         deskripsi,
         akun,

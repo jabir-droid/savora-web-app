@@ -8,6 +8,7 @@ export const useAuth = () => useContext(AuthContext)
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [passwordRecovery, setPasswordRecovery] = useState(false)
 
   useEffect(() => {
     // Mengecek sesi saat ini saat aplikasi dimuat
@@ -20,7 +21,10 @@ export const AuthProvider = ({ children }) => {
     getSession()
 
     // Mendengarkan perubahan status autentikasi (login, logout)
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      // Tautan reset password di email menghasilkan sesi pemulihan:
+      // aplikasi wajib menampilkan form kata sandi baru, bukan dashboard.
+      if (event === 'PASSWORD_RECOVERY') setPasswordRecovery(true)
       setUser(session?.user ?? null)
       setLoading(false)
     })
@@ -52,11 +56,28 @@ export const AuthProvider = ({ children }) => {
     return await supabase.auth.signOut()
   }
 
+  const resetPassword = async (email) => {
+    return await supabase.auth.resetPasswordForEmail(email, {
+      // Tautan di email reset mengembalikan pengguna ke aplikasi ini
+      redirectTo: window.location.origin,
+    })
+  }
+
+  const updatePassword = async (newPassword) => {
+    return await supabase.auth.updateUser({ password: newPassword })
+  }
+
+  const clearPasswordRecovery = () => setPasswordRecovery(false)
+
   const value = {
     user,
     signUp,
     signIn,
     signOut,
+    resetPassword,
+    updatePassword,
+    passwordRecovery,
+    clearPasswordRecovery,
   }
 
   return (

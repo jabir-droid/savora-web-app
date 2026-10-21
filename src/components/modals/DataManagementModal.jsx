@@ -4,6 +4,7 @@ import { settingsService } from '../../services/settingsService'
 import { triggerHaptic } from '../../utils/haptics'
 import { useToast } from '../../contexts/ToastContext'
 import { useLanguage } from '../../contexts/LanguageContext'
+import { downloadCsv } from '../../utils/csv'
 
 export default function DataManagementModal({ isOpen, onClose, onDataChanged }) {
   const { t } = useLanguage()
@@ -37,29 +38,18 @@ export default function DataManagementModal({ isOpen, onClose, onDataChanged }) 
         return
       }
 
-      const header = [t('tx.col_date'), t('tx.col_type'), t('tx.col_category'), t('tx.col_amount'), t('tx.account'), t('tx.col_desc')]
+      const header = [t('tx.col_date'), t('tx.col_type'), t('tx.col_category'), t('tx.col_amount'), t('tx.account'), t('modal_tx.dest_account'), t('tx.col_desc')]
       const rows = oldTx.map(tx => [
         new Date(tx.created_at).toLocaleString(),
         tx.tipe === 'Pemasukan' ? t('tx.type_income') : tx.tipe === 'Pengeluaran' ? t('tx.type_expense') : tx.tipe === 'Transfer' ? t('tx.type_transfer') : tx.tipe,
         tx.kategori,
         tx.jumlah,
         tx.akun,
+        tx.transferke || '',
         tx.deskripsi || ''
       ])
-      
-      const csvContent = [
-        header.join(","),
-        ...rows.map(r => r.map(cell => `"${cell}"`).join(","))
-      ].join("\n")
 
-      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
-      const url = URL.createObjectURL(blob)
-      const link = document.createElement("a")
-      link.setAttribute("href", url)
-      link.setAttribute("download", `savora_arsip_transaksi_${new Date().getTime()}.csv`)
-      document.body.appendChild(link)
-      link.click()
-      document.body.removeChild(link)
+      downloadCsv(`savora_arsip_transaksi_${new Date().getTime()}.csv`, header, rows)
 
       const idsToDelete = oldTx.map(tx => tx.id)
       const { error: delErr } = await supabase

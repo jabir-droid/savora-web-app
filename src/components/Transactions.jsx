@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { transactionService } from '../services/transactionService'
 import { formatCurrency } from '../utils/formatCurrency'
+import { downloadCsv } from '../utils/csv'
 import { useToast } from '../contexts/ToastContext'
 import { useLanguage } from '../contexts/LanguageContext'
 import { CATEGORY_ICONS } from '../utils/categoryIcons'
@@ -126,19 +127,7 @@ export default function Transactions() {
       tx.deskripsi || '-'
     ])
     
-    const csvContent = [
-      header.join(","),
-      ...rows.map(r => r.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(","))
-    ].join("\n")
-
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
-    const url = URL.createObjectURL(blob)
-    const link = document.createElement("a")
-    link.setAttribute("href", url)
-    link.setAttribute("download", `savora_transaksi_${new Date().getTime()}.csv`)
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
+    downloadCsv(`savora_transaksi_${new Date().getTime()}.csv`, header, rows)
     showToast(t('tx.export_success'), 'success')
   }
 

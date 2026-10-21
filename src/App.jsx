@@ -39,10 +39,14 @@ export default function App() {
   const [isAppLocked, setIsAppLocked] = useState(false)
   const [isSettingsLoaded, setIsSettingsLoaded] = useState(false)
   const [pendingVerificationEmail, setPendingVerificationEmail] = useState('')
+  const [showResetRequest, setShowResetRequest] = useState(false)
+  const [resetSentEmail, setResetSentEmail] = useState('')
+  const [recoveryPassword, setRecoveryPassword] = useState('')
+  const [recoveryConfirm, setRecoveryConfirm] = useState('')
   const [mfaGate, setMfaGate] = useState('ok') // 'checking' | 'required' | 'ok'
   const [mfaFactorId, setMfaFactorId] = useState(null)
   
-  const { user, signIn, signUp, signOut } = useAuth()
+  const { user, signIn, signUp, signOut, resetPassword, updatePassword, passwordRecovery, clearPasswordRecovery } = useAuth()
   const { t, toggleLanguage } = useLanguage()
   const { showToast } = useToast()
 
@@ -182,6 +186,49 @@ export default function App() {
     }
   }
 
+  const handleResetRequest = async (e) => {
+    e.preventDefault()
+    setIsLoading(true)
+    try {
+      const { error } = await resetPassword(email)
+      if (error) throw error
+      // Supabase selalu menjawab sukses (anti-enumerasi akun);
+      // teks panel dibuat netral: "jika email terdaftar".
+      setResetSentEmail(email)
+    } catch (error) {
+      showToast(localizeAuthError(error.message), 'error')
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleSetNewPassword = async (e) => {
+    e.preventDefault()
+    if (recoveryPassword.length < 8) {
+      showToast('Password minimal 8 karakter.', 'error')
+      return
+    }
+    if (recoveryPassword !== recoveryConfirm) {
+      showToast('Konfirmasi kata sandi tidak sama.', 'error')
+      return
+    }
+    setIsLoading(true)
+    try {
+      const { error } = await updatePassword(recoveryPassword)
+      if (error) throw error
+      // Akhiri sesi pemulihan; pengguna masuk ulang dengan kata sandi baru
+      await signOut()
+      clearPasswordRecovery()
+      setRecoveryPassword('')
+      setRecoveryConfirm('')
+      showToast('Kata sandi berhasil diubah. Silakan masuk dengan kata sandi baru.', 'success')
+    } catch (error) {
+      showToast(localizeAuthError(error.message), 'error')
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
   const openTransactionWithData = (data) => {
     setTransactionInitialData(data)
     setIsModalOpen(true)
@@ -197,6 +244,50 @@ export default function App() {
             <h1 className="text-2xl font-extrabold text-savora-900">Savora</h1>
           </div>
           
+          {showResetRequest ? (
+          <div>
+            <h2 className="text-lg font-extrabold text-savora-900 text-center">Reset Kata Sandi</h2>
+            <p className="text-xs text-slate-500 text-center mt-2 mb-6 leading-relaxed">Masukkan email akun Anda. Kami akan mengirim tautan untuk membuat kata sandi baru.</p>
+
+            {resetSentEmail && (
+              <div className="mb-6 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-2xl p-4 text-xs leading-relaxed">
+                <p className="font-bold mb-1">Tautan reset terkirim</p>
+                <p>Jika email <span className="font-bold">{resetSentEmail}</span> terdaftar di Savora, tautan reset kata sandi sudah kami kirim ke alamat tersebut. Periksa kotak masuk (dan folder spam), lalu klik tautannya.</p>
+              </div>
+            )}
+
+            <form className="space-y-4" onSubmit={handleResetRequest}>
+              <div>
+                <label className="block text-[11px] font-bold text-savora-900 mb-1.5 ml-1">E-mail</label>
+                <input
+                  type="email"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="w-full bg-slate-50 border border-slate-200 text-slate-800 text-sm rounded-xl focus:ring-1 focus:ring-savora-800 focus:border-savora-800 block p-3 outline-none transition placeholder-slate-400"
+                  placeholder="nama@email.com"
+                />
+              </div>
+              <button
+                disabled={isLoading}
+                className="w-full bg-savora-orange hover:bg-orange-600 text-white font-bold py-3 px-4 rounded-xl transition shadow-sm mt-6 text-sm disabled:opacity-50"
+              >
+                {isLoading ? 'Memproses...' : 'Kirim Tautan Reset'}
+              </button>
+            </form>
+
+            <div className="mt-6 text-center">
+              <button
+                onClick={() => { setShowResetRequest(false); setResetSentEmail('') }}
+                className="text-xs text-savora-orange hover:underline font-bold transition"
+              >
+                Kembali masuk
+              </button>
+            </div>
+          </div>
+          ) : (
+          <>
+
           {pendingVerificationEmail && (
             <div className="mb-6 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-2xl p-4 text-xs leading-relaxed">
               <p className="font-bold mb-1">Pendaftaran diterima — verifikasi email Anda</p>
@@ -230,6 +321,11 @@ export default function App() {
               {!isLoginMode && (
                 <p className="text-[11px] text-slate-400 mt-1.5 ml-1">Minimal 8 karakter. Gunakan password unik yang belum pernah bocor.</p>
               )}
+              {isLoginMode && (
+                <div className="text-right mt-1.5">
+                  <button type="button" onClick={() => setShowResetRequest(true)} className="text-[11px] text-savora-orange hover:underline font-bold transition">Lupa password?</button>
+                </div>
+              )}
             </div>
 
             <button 
@@ -248,6 +344,8 @@ export default function App() {
               {isLoginMode ? 'Belum punya akun? Daftar' : 'Sudah punya akun? Masuk'}
             </button>
           </div>
+          </>
+          )}
         </div>
       </div>
     )
@@ -257,6 +355,57 @@ export default function App() {
   const handleMenuClick = (tab) => {
     setActiveTab(tab)
     setIsMobileMenuOpen(false)
+  }
+
+  // Layar buat kata sandi baru dari tautan reset email — didahulukan dari
+  // gerbang 2FA/PIN: sesi pemulihan hanya boleh dipakai mengganti kata sandi.
+  if (user && passwordRecovery) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-4 bg-slate-50 font-sans">
+        <div className="bg-white rounded-3xl shadow-sm border border-slate-200/60 w-full max-w-sm p-8">
+          <div className="text-center mb-8">
+            <img src="/favicon.svg" alt="Savora Logo" className="h-16 w-16 mx-auto mb-4 drop-shadow-sm" />
+            <h1 className="text-2xl font-extrabold text-savora-900">Savora</h1>
+          </div>
+
+          <h2 className="text-lg font-extrabold text-savora-900 text-center">Buat Kata Sandi Baru</h2>
+          <p className="text-xs text-slate-500 text-center mt-2 mb-6 leading-relaxed">Masukkan kata sandi baru untuk akun <span className="font-bold">{user.email}</span>.</p>
+
+          <form className="space-y-4" onSubmit={handleSetNewPassword}>
+            <div>
+              <label className="block text-[11px] font-bold text-savora-900 mb-1.5 ml-1">Kata sandi baru</label>
+              <input
+                type="password"
+                required
+                minLength={8}
+                value={recoveryPassword}
+                onChange={(e) => setRecoveryPassword(e.target.value)}
+                className="w-full bg-slate-50 border border-slate-200 text-slate-800 text-sm rounded-xl focus:ring-1 focus:ring-savora-800 focus:border-savora-800 block p-3 outline-none transition placeholder-slate-400"
+                placeholder="••••••••"
+              />
+              <p className="text-[11px] text-slate-400 mt-1.5 ml-1">Minimal 8 karakter. Gunakan password unik yang belum pernah bocor.</p>
+            </div>
+            <div>
+              <label className="block text-[11px] font-bold text-savora-900 mb-1.5 ml-1">Konfirmasi kata sandi baru</label>
+              <input
+                type="password"
+                required
+                value={recoveryConfirm}
+                onChange={(e) => setRecoveryConfirm(e.target.value)}
+                className="w-full bg-slate-50 border border-slate-200 text-slate-800 text-sm rounded-xl focus:ring-1 focus:ring-savora-800 focus:border-savora-800 block p-3 outline-none transition placeholder-slate-400"
+                placeholder="••••••••"
+              />
+            </div>
+            <button
+              disabled={isLoading}
+              className="w-full bg-savora-orange hover:bg-orange-600 text-white font-bold py-3 px-4 rounded-xl transition shadow-sm mt-6 text-sm disabled:opacity-50"
+            >
+              {isLoading ? 'Memproses...' : 'Simpan Kata Sandi Baru'}
+            </button>
+          </form>
+        </div>
+      </div>
+    )
   }
 
   // Gerbang verifikasi dua langkah (2FA) — sebelum PIN dan aplikasi utama
