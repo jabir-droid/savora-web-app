@@ -18,6 +18,7 @@ import SecurityModal from './modals/SecurityModal'
 import DataManagementModal from './modals/DataManagementModal'
 import AboutModal from './modals/AboutModal'
 import TelegramModal from './modals/TelegramModal'
+import AiConfigModal from './modals/AiConfigModal'
 
 export default function Settings() {
   const { t } = useLanguage()
@@ -200,6 +201,12 @@ export default function Settings() {
           colorClass="bg-blue-50 text-blue-500" 
           onClick={() => { triggerHaptic([30]); setActiveModal('telegram') }} 
         />
+        <MenuItem 
+          icon="fa-robot" 
+          label={t('settings.ai_title')} 
+          colorClass="bg-violet-50 text-violet-600" 
+          onClick={() => { triggerHaptic([30]); setActiveModal('ai') }} 
+        />
       </div>
 
       {/* Logic Modals */}
@@ -247,6 +254,13 @@ export default function Settings() {
 
       <TelegramModal
         isOpen={activeModal === 'telegram'}
+        onClose={() => setActiveModal(null)}
+        initialSettings={settings}
+        onSettingsChange={(newSettings) => setSettings({ ...settings, ...newSettings })}
+      />
+
+      <AiConfigModal
+        isOpen={activeModal === 'ai'}
         onClose={() => setActiveModal(null)}
         initialSettings={settings}
         onSettingsChange={(newSettings) => setSettings({ ...settings, ...newSettings })}
