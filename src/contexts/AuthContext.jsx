@@ -1,5 +1,6 @@
 import React, { createContext, useState, useEffect, useContext } from 'react'
 import { supabase } from '../supabaseClient'
+import { activityService } from '../services/activityService'
 
 // Penanda sesi pemulihan dari tautan email reset: fragment URL hasil
 // verifikasi tautan memuat "type=recovery". Event PASSWORD_RECOVERY dapat
@@ -24,6 +25,9 @@ export const AuthProvider = ({ children }) => {
       const { data: { session } } = await supabase.auth.getSession()
       setUser(session?.user ?? null)
       setLoading(false)
+      // Sesi yang sudah ada saat aplikasi dimuat: segarkan catatan
+      // perangkatnya (last_seen_at) tanpa mencatat login baru.
+      if (session) activityService.registerCurrentSession(session)
     }
     
     getSession()
@@ -33,6 +37,15 @@ export const AuthProvider = ({ children }) => {
       // Tautan reset password di email menghasilkan sesi pemulihan:
       // aplikasi wajib menampilkan form kata sandi baru, bukan dashboard.
       if (event === 'PASSWORD_RECOVERY') setPasswordRecovery(true)
+      if (event === 'SIGNED_IN' || event === 'PASSWORD_RECOVERY') {
+        // Catat perangkat ini sebagai sesi aktif. Login dicatat ke log
+        // aktivitas, kecuali kedatangan lewat tautan reset (peristiwa
+        // pemulihannya sendiri tercatat saat kata sandi diubah).
+        if (session) activityService.registerCurrentSession(session)
+        if (event === 'SIGNED_IN' && !arrivedViaRecoveryLink) {
+          activityService.logEvent('login')
+        }
+      }
       setUser(session?.user ?? null)
       setLoading(false)
     })
@@ -61,7 +74,22 @@ export const AuthProvider = ({ children }) => {
   }
 
   const signOut = async () => {
+    // Catat sebelum sesi berakhir (sesudah keluar, identitas pengguna
+    // tidak bisa lagi diketahui untuk penulisan log).
+    await activityService.logEvent('logout')
     return await supabase.auth.signOut()
+  }
+
+  // Akhiri sesi di SEMUA perangkat lain lewat mekanisme resmi Supabase
+  // (scope 'others'), lalu bersihkan catatan sesi perangkat lain.
+  const signOutOthers = async () => {
+    const currentSessionId = await activityService.getCurrentSessionId()
+    const result = await supabase.auth.signOut({ scope: 'others' })
+    if (!result.error) {
+      await activityService.pruneOtherSessionRecords(currentSessionId)
+      await activityService.logEvent('sesi_lain_dikeluarkan')
+    }
+    return result
   }
 
   const resetPassword = async (email) => {
@@ -72,7 +100,9 @@ export const AuthProvider = ({ children }) => {
   }
 
   const updatePassword = async (newPassword) => {
-    return await supabase.auth.updateUser({ password: newPassword })
+    const result = await supabase.auth.updateUser({ password: newPassword })
+    if (!result.error) await activityService.logEvent('kata_sandi_diubah')
+    return result
   }
 
   const clearPasswordRecovery = () => setPasswordRecovery(false)
@@ -82,6 +112,7 @@ export const AuthProvider = ({ children }) => {
     signUp,
     signIn,
     signOut,
+    signOutOthers,
     resetPassword,
     updatePassword,
     passwordRecovery,

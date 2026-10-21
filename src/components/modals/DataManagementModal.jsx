@@ -5,6 +5,7 @@ import { triggerHaptic } from '../../utils/haptics'
 import { useToast } from '../../contexts/ToastContext'
 import { useLanguage } from '../../contexts/LanguageContext'
 import { downloadCsv } from '../../utils/csv'
+import { activityService } from '../../services/activityService'
 
 export default function DataManagementModal({ isOpen, onClose, onDataChanged }) {
   const { t } = useLanguage()
@@ -59,6 +60,7 @@ export default function DataManagementModal({ isOpen, onClose, onDataChanged }) 
 
       if (delErr) throw delErr
 
+      activityService.logEvent('ekspor_arsip', { jumlah: idsToDelete.length })
       showToast(t('settings.archive_success'), 'success')
       onDataChanged && onDataChanged()
     } catch (e) {

@@ -1,15 +1,16 @@
 import React, { useState, useEffect } from 'react'
 import { settingsService } from '../../services/settingsService'
 import { mfaService } from '../../services/mfaService'
+import { activityService } from '../../services/activityService'
 import { useAuth } from '../../contexts/AuthContext'
 import { triggerHaptic } from '../../utils/haptics'
 import { useToast } from '../../contexts/ToastContext'
 import { useLanguage } from '../../contexts/LanguageContext'
 
 export default function SecurityModal({ isOpen, onClose, initialSettings, onSettingsChange }) {
-  const { t } = useLanguage()
+  const { t, lang } = useLanguage()
   const { showToast } = useToast()
-  const { user } = useAuth()
+  const { user, signOutOthers } = useAuth()
 
   const [settings, setSettings] = useState(initialSettings || {})
   const [newPin, setNewPin] = useState('')
@@ -22,6 +23,34 @@ export default function SecurityModal({ isOpen, onClose, initialSettings, onSett
   const [enrollCode, setEnrollCode] = useState('')
   const [freshCodes, setFreshCodes] = useState(null)
   const [mfaBusy, setMfaBusy] = useState(false)
+
+  // --- Perangkat & Sesi + Log Aktivitas (Fase 3 Paket 1) ---
+  const [sessions, setSessions] = useState([])
+  const [activity, setActivity] = useState([])
+  const [sessLoading, setSessLoading] = useState(true)
+  const [currentSessionId, setCurrentSessionId] = useState(null)
+  const [sessBusy, setSessBusy] = useState(false)
+  const [confirmSignOutOthers, setConfirmSignOutOthers] = useState(false)
+
+  const fmtDateTime = (iso) => {
+    if (!iso) return '-'
+    try {
+      return new Date(iso).toLocaleString(lang === 'en' ? 'en-US' : 'id-ID', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+    } catch {
+      return iso
+    }
+  }
+
+  const loadSessionsAndActivity = async () => {
+    const [sess, act, curId] = await Promise.all([
+      activityService.listSessions().catch(() => []),
+      activityService.listActivity(20).catch(() => []),
+      activityService.getCurrentSessionId().catch(() => null),
+    ])
+    setSessions(sess)
+    setActivity(act)
+    setCurrentSessionId(curId)
+  }
 
   useEffect(() => {
     if (isOpen && initialSettings) {
@@ -38,6 +67,18 @@ export default function SecurityModal({ isOpen, onClose, initialSettings, onSett
       .catch(() => { if (!cancelled) setMfaFactor(null) })
       .finally(() => { if (!cancelled) setMfaLoading(false) })
     return () => { cancelled = true }
+  }, [isOpen])
+
+  useEffect(() => {
+    if (!isOpen) return
+    let cancelled = false
+    setSessLoading(true)
+    setConfirmSignOutOthers(false)
+    loadSessionsAndActivity()
+      .catch(() => { /* daftar kosong bila tabel belum dimigrasi */ })
+      .finally(() => { if (!cancelled) setSessLoading(false) })
+    return () => { cancelled = true }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen])
 
   if (!isOpen) return null
@@ -83,6 +124,7 @@ export default function SecurityModal({ isOpen, onClose, initialSettings, onSett
       setEnrollData(null)
       setEnrollCode('')
       setFreshCodes(codes)
+      activityService.logEvent('2fa_diaktifkan')
       showToast(t('settings.twofa_toast_on'), 'success')
     } catch {
       showToast(t('settings.twofa_err_code'), 'error')
@@ -127,6 +169,7 @@ export default function SecurityModal({ isOpen, onClose, initialSettings, onSett
       await mfaService.unenrollFactor(mfaFactor.id)
       setMfaFactor(null)
       setFreshCodes(null)
+      activityService.logEvent('2fa_dinonaktifkan')
       showToast(t('settings.twofa_toast_off'), 'success')
     } catch (e) {
       if ((e.message || '').toLowerCase().includes('aal')) {
@@ -136,6 +179,38 @@ export default function SecurityModal({ isOpen, onClose, initialSettings, onSett
       }
     } finally {
       setMfaBusy(false)
+    }
+  }
+
+  // --- Handler Perangkat & Sesi ---
+  const handleSignOutOthers = async () => {
+    if (!confirmSignOutOthers) {
+      setConfirmSignOutOthers(true)
+      return
+    }
+    setSessBusy(true)
+    try {
+      const { error } = await signOutOthers()
+      if (error) throw error
+      setConfirmSignOutOthers(false)
+      showToast(t('settings.session_signout_others_done'), 'success')
+      await loadSessionsAndActivity()
+    } catch (e) {
+      showToast(e.message, 'error')
+    } finally {
+      setSessBusy(false)
+    }
+  }
+
+  const handleDeleteSessionRecord = async (id) => {
+    setSessBusy(true)
+    try {
+      await activityService.deleteSessionRecord(id)
+      setSessions((prev) => prev.filter((s) => s.id !== id))
+    } catch (e) {
+      showToast(e.message, 'error')
+    } finally {
+      setSessBusy(false)
     }
   }
 
@@ -272,6 +347,70 @@ export default function SecurityModal({ isOpen, onClose, initialSettings, onSett
               <button onClick={handleEnroll} disabled={mfaBusy} className="w-full bg-emerald-500 hover:bg-emerald-600 disabled:bg-slate-300 text-white text-xs font-bold px-4 py-3 rounded-xl transition shadow">
                 {t('settings.twofa_btn_enable')}
               </button>
+            )}
+          </div>
+
+          {/* Perangkat & Sesi (Fase 3 Paket 1) */}
+          <div className="border-t border-slate-100 pt-6 space-y-4">
+            <div>
+              <h4 className="font-bold text-sm text-slate-800">{t('settings.session_title')}</h4>
+              <p className="text-xs text-slate-400 mt-1">{t('settings.session_desc')}</p>
+            </div>
+
+            {sessLoading ? (
+              <p className="text-xs text-slate-400">{t('settings.session_loading')}</p>
+            ) : sessions.length === 0 ? (
+              <p className="text-xs text-slate-400 bg-slate-50 border border-slate-100 rounded-2xl p-4">{t('settings.session_empty')}</p>
+            ) : (
+              <div className="space-y-2">
+                {sessions.map((s) => {
+                  const isCurrent = currentSessionId && s.session_id === currentSessionId
+                  return (
+                    <div key={s.id} className="flex items-center justify-between gap-3 bg-slate-50 border border-slate-100 rounded-2xl px-4 py-3">
+                      <div className="min-w-0">
+                        <p className="text-xs font-bold text-slate-700 flex items-center gap-2 flex-wrap">
+                          <span className="truncate">{s.device_label || 'Perangkat'}</span>
+                          {isCurrent && <span className="bg-emerald-100 text-emerald-700 text-[10px] font-bold px-2 py-0.5 rounded-full">{t('settings.session_current')}</span>}
+                        </p>
+                        <p className="text-[11px] text-slate-400 mt-0.5">
+                          {t('settings.session_login_at')}: {fmtDateTime(s.created_at)} · {t('settings.session_last_active')}: {fmtDateTime(s.last_seen_at)}
+                        </p>
+                      </div>
+                      {!isCurrent && (
+                        <button onClick={() => handleDeleteSessionRecord(s.id)} disabled={sessBusy} className="shrink-0 text-[11px] font-bold text-slate-400 hover:text-rose-500 transition disabled:opacity-50">
+                          {t('settings.session_delete_record')}
+                        </button>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+
+            <button onClick={handleSignOutOthers} disabled={sessBusy} className={`w-full text-xs font-bold px-4 py-3 rounded-xl transition shadow disabled:opacity-50 ${confirmSignOutOthers ? 'bg-rose-500 hover:bg-rose-600 text-white' : 'bg-slate-800 hover:bg-slate-900 text-white'}`}>
+              {confirmSignOutOthers ? t('settings.session_signout_others_confirm') : t('settings.session_signout_others')}
+            </button>
+            <p className="text-[11px] text-slate-400 leading-relaxed">{t('settings.session_note')}</p>
+          </div>
+
+          {/* Aktivitas Terakhir (Fase 3 Paket 1) */}
+          <div className="border-t border-slate-100 pt-6 space-y-4">
+            <div>
+              <h4 className="font-bold text-sm text-slate-800">{t('settings.activity_title')}</h4>
+            </div>
+            {sessLoading ? (
+              <p className="text-xs text-slate-400">{t('settings.session_loading')}</p>
+            ) : activity.length === 0 ? (
+              <p className="text-xs text-slate-400 bg-slate-50 border border-slate-100 rounded-2xl p-4">{t('settings.activity_empty')}</p>
+            ) : (
+              <div className="space-y-1.5">
+                {activity.map((a) => (
+                  <div key={a.id} className="flex items-center justify-between gap-3 px-1 py-1">
+                    <p className="text-xs text-slate-600">{t('settings.act_' + a.event)}</p>
+                    <p className="text-[11px] text-slate-400 shrink-0">{fmtDateTime(a.created_at)}</p>
+                  </div>
+                ))}
+              </div>
             )}
           </div>
 

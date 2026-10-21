@@ -138,6 +138,29 @@ export default function App() {
     }
   }
 
+  // --- Rem percobaan masuk (Fase 3 Paket 1) ---
+  // Lapisan klien di atas rate-limit server Supabase Auth: setelah 5
+  // kegagalan berturut-turut, percobaan berikutnya dijeda 30 detik dan
+  // berlipat (maks 10 menit). Status disimpan di localStorage per peramban.
+  const LOGIN_GUARD_KEY = 'savora_login_guard'
+  const readLoginGuard = () => {
+    try {
+      const raw = JSON.parse(localStorage.getItem(LOGIN_GUARD_KEY) || '{}')
+      return { fails: raw.fails || 0, until: raw.until || 0 }
+    } catch {
+      return { fails: 0, until: 0 }
+    }
+  }
+  const saveLoginGuard = (guard) => {
+    try {
+      localStorage.setItem(LOGIN_GUARD_KEY, JSON.stringify(guard))
+    } catch {
+      // Abaikan: penyimpanan tidak tersedia
+    }
+  }
+  const loginCooldownMessage = (until) =>
+    `Terlalu banyak percobaan masuk. Coba lagi dalam ${Math.max(1, Math.ceil((until - Date.now()) / 1000))} detik.`
+
   // Petakan pesan error mentah Supabase ke Bahasa Indonesia yang ramah (tetap generik agar tidak membocorkan info akun)
   const localizeAuthError = (message) => {
     const m = (message || '').toLowerCase()
@@ -163,8 +186,28 @@ export default function App() {
     setIsLoading(true)
     try {
       if (isLoginMode) {
+        const guard = readLoginGuard()
+        if (guard.until > Date.now()) {
+          showToast(loginCooldownMessage(guard.until), 'error')
+          return
+        }
         const { error } = await signIn(email, password)
-        if (error) throw error
+        if (error) {
+          const isNetworkError = /network|fetch/i.test(error.message || '')
+          if (!isNetworkError) {
+            const fails = guard.fails + 1
+            if (fails >= 5) {
+              const until = Date.now() + Math.min(30 * 2 ** (fails - 5), 600) * 1000
+              saveLoginGuard({ fails, until })
+              showToast(loginCooldownMessage(until), 'error')
+              return
+            }
+            saveLoginGuard({ fails, until: 0 })
+          }
+          showToast(localizeAuthError(error.message), 'error')
+          return
+        }
+        saveLoginGuard({ fails: 0, until: 0 })
         showToast('Berhasil masuk ke Savora!', 'success')
       } else {
         const { data, error } = await signUp(email, password)

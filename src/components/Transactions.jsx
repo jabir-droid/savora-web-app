@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { transactionService } from '../services/transactionService'
 import { formatCurrency } from '../utils/formatCurrency'
 import { downloadCsv } from '../utils/csv'
+import { activityService } from '../services/activityService'
 import { useToast } from '../contexts/ToastContext'
 import { useLanguage } from '../contexts/LanguageContext'
 import { CATEGORY_ICONS } from '../utils/categoryIcons'
@@ -128,6 +129,7 @@ export default function Transactions() {
     ])
     
     downloadCsv(`savora_transaksi_${new Date().getTime()}.csv`, header, rows)
+    activityService.logEvent('ekspor_data', { jumlah: rows.length })
     showToast(t('tx.export_success'), 'success')
   }
 
