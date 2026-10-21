@@ -302,7 +302,7 @@ export default function Transactions() {
                       {CATEGORY_ICONS[tx.kategori]?.tKey ? t(CATEGORY_ICONS[tx.kategori].tKey) : tx.kategori}
                     </td>
                     <td className="py-3 px-4">
-                      <div className="font-medium text-slate-800">{tx.deskripsi || '-'}</div>
+                      <div className="font-medium text-slate-800">{tx.deskripsi || '-'} {tx.foto_path && <i className="fa-solid fa-camera text-[10px] text-slate-400" title={t('tx.has_photo')}></i>}</div>
                       <div className="text-xs text-slate-400 mt-0.5">{tx.akun} {tx.transferke && `→ ${tx.transferke}`}</div>
                     </td>
                     <td className={`py-3 px-4 text-right font-bold whitespace-nowrap ${
@@ -361,7 +361,7 @@ export default function Transactions() {
                  </div>
                  
                  <div>
-                   <h4 className="text-sm font-bold text-slate-800">{tx.deskripsi || '-'}</h4>
+                   <h4 className="text-sm font-bold text-slate-800">{tx.deskripsi || '-'} {tx.foto_path && <i className="fa-solid fa-camera text-[10px] text-slate-400" title={t('tx.has_photo')}></i>}</h4>
                    <p className="text-xs text-slate-500 mt-1">{tx.akun} {tx.transferke && `→ ${tx.transferke}`}</p>
                  </div>
                  

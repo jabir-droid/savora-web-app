@@ -1,6 +1,7 @@
 import { supabase } from '../supabaseClient'
 import { accountService } from './accountService'
 import { notificationService } from './notificationService'
+import { receiptService } from './receiptService'
 
 export const transactionService = {
   /**
@@ -74,7 +75,8 @@ export const transactionService = {
       jumlah: payload.jumlah,
       deskripsi: payload.deskripsi,
       akun: payload.akun,
-      transferke: payload.transferke || null
+      transferke: payload.transferke || null,
+      foto_path: payload.foto_path || null
     }
 
     if (payload.tanggal) {
@@ -181,6 +183,9 @@ export const transactionService = {
       akun: newTx.akun,
       transferke: newTx.transferke || null
     }
+    if ('foto_path' in newTx) {
+      updateData.foto_path = newTx.foto_path || null
+    }
     if (newTx.tanggal) {
       updateData.created_at = newTx.tanggal
     }
@@ -206,12 +211,23 @@ export const transactionService = {
    * Menghapus transaksi berdasarkan ID
    */
   async deleteTransaction(id, tipe, jumlah, akun, transferke) {
+    // Ambil path foto struk dulu agar berkasnya bisa ikut dihapus
+    const { data: existing } = await supabase
+      .from('transactions')
+      .select('foto_path')
+      .eq('id', id)
+      .single()
+
     const { error } = await supabase
       .from('transactions')
       .delete()
       .eq('id', id)
-      
+
     if (error) throw error
+
+    if (existing && existing.foto_path) {
+      receiptService.deleteReceipt(existing.foto_path)
+    }
 
     // Kembalikan saldo akun seperti semula (reverse)
     await accountService.updateAccountBalance(akun, tipe === 'Pemasukan' ? 'Pengeluaran' : 'Pemasukan', jumlah)
