@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { supabase } from '../../supabaseClient'
 import { settingsService } from '../../services/settingsService'
 import { triggerHaptic } from '../../utils/haptics'
@@ -6,6 +6,8 @@ import { useToast } from '../../contexts/ToastContext'
 import { useLanguage } from '../../contexts/LanguageContext'
 import { downloadCsv } from '../../utils/csv'
 import { activityService } from '../../services/activityService'
+import { backupService } from '../../services/backupService'
+import ConfirmModal from './ConfirmModal'
 
 export default function DataManagementModal({ isOpen, onClose, onDataChanged }) {
   const { t } = useLanguage()
@@ -26,6 +28,24 @@ export default function DataManagementModal({ isOpen, onClose, onDataChanged }) 
     setResetConfirmText('')
     onClose()
   }
+
+  // Cadangan otomatis (Paket Perlindungan)
+  const [snapshots, setSnapshots] = useState([])
+  const [isBackingUp, setIsBackingUp] = useState(false)
+  const [confirmRestoreSnap, setConfirmRestoreSnap] = useState(null)
+
+  const refreshSnapshots = async () => {
+    try { setSnapshots(await backupService.listSnapshots()) } catch { /* abaikan */ }
+  }
+
+  useEffect(() => {
+    if (!isOpen) return
+    let cancelled = false
+    backupService.listSnapshots()
+      .then(rows => { if (!cancelled) setSnapshots(rows) })
+      .catch(() => { if (!cancelled) setSnapshots([]) })
+    return () => { cancelled = true }
+  }, [isOpen])
 
   if (!isOpen) return null
 
@@ -118,40 +138,76 @@ export default function DataManagementModal({ isOpen, onClose, onDataChanged }) 
     }
   }
 
+  // Rutin pemulihan bersama: dipakai tempel-JSON manual dan pulihkan
+  // snapshot cadangan otomatis. Perilaku sama seperti semula.
+  const applyRestoreData = async (data) => {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return
+
+    const insertData = async (table, items) => {
+      if (!items || items.length === 0) return
+      const cleanItems = items.map(item => {
+         const { id, user_id, created_at, updated_at, ...rest } = item
+         return { ...rest, user_id: user.id }
+      })
+      await supabase.from(table).insert(cleanItems)
+    }
+
+    await insertData('accounts', data.accounts)
+    await insertData('categories', data.categories)
+    await insertData('savings', data.savings)
+    await insertData('transactions', data.transactions)
+    await insertData('calendar_notes', data.calendar_notes)
+
+    if (data.settings) {
+      const { id, user_id, created_at, ...restSettings } = data.settings
+      await settingsService.updateSettings(restSettings)
+    }
+
+    showToast(t('settings.restore_success'), 'success')
+    setRestoreJson('')
+    triggerHaptic([50, 100, 50])
+    onDataChanged && onDataChanged()
+    setTimeout(() => window.location.reload(), 1000)
+  }
+
   const handleRestoreJSON = async () => {
     if (!restoreJson) return
     setIsProcessing(true)
     try {
       const data = JSON.parse(restoreJson)
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) return
-      
-      const insertData = async (table, items) => {
-        if (!items || items.length === 0) return
-        const cleanItems = items.map(item => {
-           const { id, user_id, created_at, updated_at, ...rest } = item
-           return { ...rest, user_id: user.id }
-        })
-        await supabase.from(table).insert(cleanItems)
-      }
-
-      await insertData('accounts', data.accounts)
-      await insertData('categories', data.categories)
-      await insertData('savings', data.savings)
-      await insertData('transactions', data.transactions)
-      await insertData('calendar_notes', data.calendar_notes)
-
-      if (data.settings) {
-        const { id, user_id, created_at, ...restSettings } = data.settings
-        await settingsService.updateSettings(restSettings)
-      }
-
-      showToast(t('settings.restore_success'), 'success')
-      setRestoreJson('')
-      triggerHaptic([50, 100, 50])
-      onDataChanged && onDataChanged()
-      setTimeout(() => window.location.reload(), 1000)
+      await applyRestoreData(data)
     } catch (e) {
+      showToast(t('settings.restore_fail'), 'error')
+    } finally {
+      setIsProcessing(false)
+    }
+  }
+
+  const handleCreateBackup = async () => {
+    setIsBackingUp(true)
+    try {
+      await backupService.createSnapshot('manual')
+      activityService.logEvent('cadangan_dibuat', { jenis: 'manual' })
+      showToast(t('settings.backup_created'), 'success')
+      refreshSnapshots()
+    } catch (e) {
+      showToast(t('settings.backup_create_fail') + e.message, 'error')
+    } finally {
+      setIsBackingUp(false)
+    }
+  }
+
+  const handleRestoreSnapshot = async () => {
+    const snap = confirmRestoreSnap
+    setConfirmRestoreSnap(null)
+    if (!snap) return
+    setIsProcessing(true)
+    try {
+      const data = await backupService.getSnapshotData(snap.id)
+      activityService.logEvent('cadangan_dipulihkan', { jenis: snap.kind })
+      await applyRestoreData(data)
+    } catch {
       showToast(t('settings.restore_fail'), 'error')
     } finally {
       setIsProcessing(false)
@@ -162,6 +218,16 @@ export default function DataManagementModal({ isOpen, onClose, onDataChanged }) 
     // Hanya boleh berjalan dari panel penjaga setelah kata konfirmasi cocok.
     if (!resetArmed) return
     setIsProcessing(true)
+    // Paket Perlindungan: snapshot pengaman WAJIB dibuat sebelum
+    // penghapusan apa pun. Bila cadangan gagal dibuat, reset dibatalkan
+    // agar penghapusan tidak pernah terjadi tanpa jalan pulang.
+    try {
+      await backupService.createSnapshot('pra-reset')
+    } catch {
+      showToast(t('settings.backup_prereset_fail'), 'error')
+      setIsProcessing(false)
+      return
+    }
     try {
       const { data: { user } } = await supabase.auth.getUser()
       if(user) {
@@ -235,6 +301,33 @@ export default function DataManagementModal({ isOpen, onClose, onDataChanged }) 
             </div>
           </div>
 
+          <div className="space-y-3 bg-sky-50 border border-sky-100 rounded-2xl p-4">
+            <div>
+              <h4 className="font-bold text-sm text-sky-700">{t('settings.backup_auto')}</h4>
+              <p className="text-xs text-sky-500/80 mt-1">{t('settings.backup_auto_desc')}</p>
+            </div>
+            <button onClick={handleCreateBackup} disabled={isBackingUp || isProcessing} className="w-full bg-sky-600 hover:bg-sky-700 disabled:bg-slate-300 text-white text-xs font-bold py-3 rounded-xl transition shadow flex items-center justify-center gap-2">
+              <i className="fa-solid fa-cloud-arrow-up"></i> {t('settings.btn_create_backup')}
+            </button>
+            {snapshots.length === 0 ? (
+              <p className="text-[11px] text-slate-400 text-center">{t('settings.backup_empty')}</p>
+            ) : (
+              <div className="space-y-1.5">
+                {snapshots.map(snap => (
+                  <div key={snap.id} className="flex items-center justify-between bg-white border border-sky-100 rounded-xl px-3 py-2">
+                    <div className="min-w-0">
+                      <p className="text-xs font-bold text-slate-700">{t('settings.backup_kind_' + snap.kind.replace('-', '_'))}</p>
+                      <p className="text-[10px] text-slate-400">{new Date(snap.created_at).toLocaleString()}</p>
+                    </div>
+                    <button onClick={() => setConfirmRestoreSnap(snap)} disabled={isProcessing} className="shrink-0 text-[11px] font-bold text-sky-600 hover:text-sky-800 disabled:text-slate-300 transition px-2 py-1">
+                      {t('settings.backup_restore_btn')}
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
           {!showResetGuard ? (
             <div className="space-y-3 bg-rose-50 border border-rose-100 rounded-2xl p-4">
               <div>
@@ -275,8 +368,18 @@ export default function DataManagementModal({ isOpen, onClose, onDataChanged }) 
               </button>
             </div>
           )}
-          
+
         </div>
+        <ConfirmModal
+          isOpen={!!confirmRestoreSnap}
+          onClose={() => setConfirmRestoreSnap(null)}
+          onConfirm={handleRestoreSnapshot}
+          title={t('settings.backup_restore_title')}
+          message={t('settings.backup_restore_msg')}
+          confirmText={t('settings.backup_restore_btn')}
+          cancelText={t('settings.reset_guard_cancel')}
+          type="warning"
+        />
       </div>
     </div>
   )
