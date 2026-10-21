@@ -14,6 +14,19 @@ export default function DataManagementModal({ isOpen, onClose, onDataChanged }) 
   const [restoreJson, setRestoreJson] = useState('')
   const [isProcessing, setIsProcessing] = useState(false)
 
+  // Penjaga Factory Reset berlapis (Fase 3 Paket 2): panel peringatan
+  // khusus + kewajiban mengetik kata konfirmasi sebelum eksekusi aktif.
+  const [showResetGuard, setShowResetGuard] = useState(false)
+  const [resetConfirmText, setResetConfirmText] = useState('')
+  const resetTyped = resetConfirmText.trim()
+  const resetArmed = resetTyped === 'HAPUS' || resetTyped === 'DELETE'
+
+  const handleClose = () => {
+    setShowResetGuard(false)
+    setResetConfirmText('')
+    onClose()
+  }
+
   if (!isOpen) return null
 
   const handleArchive = async () => {
@@ -146,11 +159,14 @@ export default function DataManagementModal({ isOpen, onClose, onDataChanged }) 
   }
 
   const handleFactoryReset = async () => {
-    if (!confirm(t('settings.reset_warn'))) return
+    // Hanya boleh berjalan dari panel penjaga setelah kata konfirmasi cocok.
+    if (!resetArmed) return
     setIsProcessing(true)
     try {
       const { data: { user } } = await supabase.auth.getUser()
       if(user) {
+        // Catat dulu ke log aktivitas (tabel log tidak ikut terhapus).
+        await activityService.logEvent('factory_reset')
         await supabase.from('transactions').delete().eq('user_id', user.id)
         await supabase.from('savings').delete().eq('user_id', user.id)
         await supabase.from('categories').delete().eq('user_id', user.id)
@@ -177,7 +193,7 @@ export default function DataManagementModal({ isOpen, onClose, onDataChanged }) 
             <i className="fa-solid fa-database text-savora-orange"></i>
             {t('settings.data') || 'Manajemen Data'}
           </h3>
-          <button onClick={onClose} disabled={isProcessing} className="w-8 h-8 flex items-center justify-center rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 transition">
+          <button onClick={handleClose} disabled={isProcessing} className="w-8 h-8 flex items-center justify-center rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 transition">
             <i className="fa-solid fa-xmark"></i>
           </button>
         </div>
@@ -219,15 +235,46 @@ export default function DataManagementModal({ isOpen, onClose, onDataChanged }) 
             </div>
           </div>
 
-          <div className="space-y-3 bg-rose-50 border border-rose-100 rounded-2xl p-4">
-            <div>
-              <h4 className="font-bold text-sm text-rose-600">{t('settings.reset')}</h4>
-              <p className="text-xs text-rose-400/80 mt-1">{t('settings.reset_desc')}</p>
+          {!showResetGuard ? (
+            <div className="space-y-3 bg-rose-50 border border-rose-100 rounded-2xl p-4">
+              <div>
+                <h4 className="font-bold text-sm text-rose-600">{t('settings.reset')}</h4>
+                <p className="text-xs text-rose-400/80 mt-1">{t('settings.reset_desc')}</p>
+              </div>
+              <button onClick={() => { setResetConfirmText(''); setShowResetGuard(true) }} disabled={isProcessing} className="w-full bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold py-3 rounded-xl transition shadow flex items-center justify-center gap-2">
+                <i className="fa-solid fa-triangle-exclamation"></i> {t('settings.btn_run_reset')}
+              </button>
             </div>
-            <button onClick={handleFactoryReset} disabled={isProcessing} className="w-full bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold py-3 rounded-xl transition shadow flex items-center justify-center gap-2">
-              <i className="fa-solid fa-triangle-exclamation"></i> {t('settings.btn_run_reset')}
-            </button>
-          </div>
+          ) : (
+            <div className="space-y-3 bg-rose-50 border-2 border-rose-300 rounded-2xl p-4">
+              <div>
+                <h4 className="font-bold text-sm text-rose-700 flex items-center gap-2">
+                  <i className="fa-solid fa-triangle-exclamation"></i> {t('settings.reset_guard_title')}
+                </h4>
+                <p className="text-xs text-rose-500 mt-1 leading-relaxed">{t('settings.reset_guard_desc')}</p>
+              </div>
+              <button onClick={handleBackupJSON} disabled={isProcessing} className="w-full bg-white border border-rose-200 hover:bg-rose-100 text-rose-600 text-xs font-bold py-3 rounded-xl transition flex items-center justify-center gap-2">
+                <i className="fa-solid fa-copy"></i> {t('settings.reset_guard_backup')}
+              </button>
+              <div>
+                <label className="block text-xs font-bold text-rose-600 mb-1.5">{t('settings.reset_guard_type_label')}</label>
+                <input
+                  type="text"
+                  value={resetConfirmText}
+                  onChange={e => setResetConfirmText(e.target.value)}
+                  placeholder="HAPUS"
+                  autoComplete="off"
+                  className="w-full border border-rose-200 rounded-xl px-4 py-2.5 text-sm font-bold tracking-widest focus:outline-none focus:border-rose-500 bg-white"
+                />
+              </div>
+              <button onClick={handleFactoryReset} disabled={!resetArmed || isProcessing} className="w-full bg-rose-600 hover:bg-rose-700 disabled:bg-slate-300 text-white text-xs font-bold py-3 rounded-xl transition shadow flex items-center justify-center gap-2">
+                <i className="fa-solid fa-trash-can"></i> {t('settings.reset_guard_execute')}
+              </button>
+              <button onClick={() => { setShowResetGuard(false); setResetConfirmText('') }} disabled={isProcessing} className="w-full text-xs font-bold text-slate-400 hover:text-slate-600 transition py-1">
+                {t('settings.reset_guard_cancel')}
+              </button>
+            </div>
+          )}
           
         </div>
       </div>
