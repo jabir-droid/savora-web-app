@@ -21,6 +21,8 @@ import AboutModal from './modals/AboutModal'
 import TelegramModal from './modals/TelegramModal'
 import AiConfigModal from './modals/AiConfigModal'
 import KursModal from './modals/KursModal'
+import CapturesModal from './modals/CapturesModal'
+import { captureService } from '../services/captureService'
 
 export default function Settings() {
   const { t } = useLanguage()
@@ -34,6 +36,7 @@ export default function Settings() {
   const [email, setEmail] = useState(user?.email || '')
   const [summary, setSummary] = useState({ transactions: 0, income: 0, expense: 0 })
   const [theme, setTheme] = useState(() => currentTheme())
+  const [pendingCaptures, setPendingCaptures] = useState(0)
 
   useEffect(() => {
     const onThemeChange = (e) => setTheme(e.detail)
@@ -52,6 +55,7 @@ export default function Settings() {
     const accs = await accountService.getAccounts()
     if (s) setSettings(s)
     if (accs) setAccounts(accs)
+    captureService.countPending().then(setPendingCaptures).catch(() => {})
     
     if (user) {
       setDisplayName(user.user_metadata?.display_name || '')
@@ -107,7 +111,7 @@ export default function Settings() {
     return number.toString()
   }
 
-  const MenuItem = ({ icon, label, colorClass, onClick }) => (
+  const MenuItem = ({ icon, label, colorClass, onClick, badge }) => (
     <button onClick={onClick} className="w-full flex items-center justify-between p-4 bg-white hover:bg-slate-50 transition border-b border-slate-100 last:border-0 group">
       <div className="flex items-center gap-4">
         <div className={`w-10 h-10 rounded-xl flex items-center justify-center shadow-sm ${colorClass}`}>
@@ -115,7 +119,12 @@ export default function Settings() {
         </div>
         <span className="font-bold text-slate-700 group-hover:text-savora-800 transition">{label}</span>
       </div>
-      <i className="fa-solid fa-chevron-right text-slate-300 group-hover:text-savora-800 transition text-sm"></i>
+      <div className="flex items-center gap-2">
+        {badge > 0 && (
+          <span className="min-w-5 h-5 px-1 rounded-full bg-amber-500 text-white text-[11px] font-extrabold flex items-center justify-center">{badge}</span>
+        )}
+        <i className="fa-solid fa-chevron-right text-slate-300 group-hover:text-savora-800 transition text-sm"></i>
+      </div>
     </button>
   )
 
@@ -223,6 +232,13 @@ export default function Settings() {
           onClick={() => { triggerHaptic([30]); setActiveModal('rates') }} 
         />
         <MenuItem 
+          icon="fa-inbox" 
+          label={t('settings.captures')} 
+          colorClass="bg-amber-50 text-amber-600" 
+          badge={pendingCaptures}
+          onClick={() => { triggerHaptic([30]); setActiveModal('captures') }} 
+        />
+        <MenuItem 
           icon="fa-moon" 
           label={`${t('settings.theme')} — ${theme === 'dark' ? t('settings.theme_on') : t('settings.theme_off')}`} 
           colorClass="bg-cyan-50 text-cyan-600" 
@@ -290,6 +306,10 @@ export default function Settings() {
       <KursModal
         isOpen={activeModal === 'rates'}
         onClose={() => setActiveModal(null)}
+      />
+      <CapturesModal
+        isOpen={activeModal === 'captures'}
+        onClose={() => { setActiveModal(null); captureService.countPending().then(setPendingCaptures).catch(() => {}) }}
       />
 
       {/* Reused Original Modals */}
