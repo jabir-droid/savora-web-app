@@ -2,6 +2,7 @@ import React, { createContext, useState, useEffect, useContext } from 'react'
 import { supabase } from '../supabaseClient'
 import { activityService } from '../services/activityService'
 import { backupService } from '../services/backupService'
+import { reportService } from '../services/reportService'
 
 // Penanda sesi pemulihan dari tautan email reset: fragment URL hasil
 // verifikasi tautan memuat "type=recovery". Event PASSWORD_RECOVERY dapat
@@ -47,6 +48,8 @@ export const AuthProvider = ({ children }) => {
           activityService.logEvent('login')
           // Paket Perlindungan: snapshot otomatis harian (best-effort).
           backupService.maybeAutoSnapshot()
+          // Program Penyempurnaan: laporan berkala terjadwal (best-effort).
+          reportService.maybeGenerateScheduledReport()
         }
       }
       setUser(session?.user ?? null)

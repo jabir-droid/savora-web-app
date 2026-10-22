@@ -7,6 +7,7 @@ import { useLanguage } from '../../contexts/LanguageContext'
 import { downloadCsv } from '../../utils/csv'
 import { activityService } from '../../services/activityService'
 import { backupService } from '../../services/backupService'
+import { reportService, REPORT_PERIODS } from '../../services/reportService'
 import ConfirmModal from './ConfirmModal'
 
 export default function DataManagementModal({ isOpen, onClose, onDataChanged }) {
@@ -46,6 +47,75 @@ export default function DataManagementModal({ isOpen, onClose, onDataChanged }) 
       .catch(() => { if (!cancelled) setSnapshots([]) })
     return () => { cancelled = true }
   }, [isOpen])
+
+  // Laporan berkala (Program Penyempurnaan)
+  const [reportPeriod, setReportPeriod] = useState('off')
+  const [reports, setReports] = useState([])
+  const [isGeneratingReport, setIsGeneratingReport] = useState(false)
+
+  const refreshReports = async () => {
+    try { setReports(await reportService.listReports()) } catch { /* abaikan */ }
+  }
+
+  useEffect(() => {
+    if (!isOpen) return
+    let cancelled = false
+    settingsService.getSettings()
+      .then(s => { if (!cancelled && s) setReportPeriod(s.laporan_periode || 'off') })
+      .catch(() => {})
+    reportService.listReports()
+      .then(rows => { if (!cancelled) setReports(rows) })
+      .catch(() => { if (!cancelled) setReports([]) })
+    return () => { cancelled = true }
+  }, [isOpen])
+
+  const reportDays = () => (reportPeriod === 'bulanan' ? REPORT_PERIODS.bulanan : REPORT_PERIODS.mingguan)
+
+  const handleReportPeriodChange = async (e) => {
+    const value = e.target.value
+    setReportPeriod(value)
+    try {
+      // Garis awal di-reset: jadwal dihitung sejak pengaturan diubah.
+      await settingsService.updateSettings({
+        laporan_periode: value === 'off' ? null : value,
+        laporan_terakhir: new Date().toISOString()
+      })
+      showToast(t('settings.report_saved'), 'success')
+    } catch (err) {
+      showToast(t('settings.report_fail') + err.message, 'error')
+    }
+  }
+
+  const handleGenerateReport = async () => {
+    setIsGeneratingReport(true)
+    try {
+      await reportService.generateReport(reportDays())
+      activityService.logEvent('laporan_dibuat')
+      await settingsService.updateSettings({ laporan_terakhir: new Date().toISOString() }).catch(() => {})
+      await refreshReports()
+      showToast(t('settings.report_generated'), 'success')
+    } catch (err) {
+      showToast(t('settings.report_fail') + err.message, 'error')
+    } finally {
+      setIsGeneratingReport(false)
+    }
+  }
+
+  const handlePrintReport = async () => {
+    setIsGeneratingReport(true)
+    try {
+      await reportService.openPrintReport(reportDays())
+    } catch (err) {
+      showToast(t('settings.report_fail') + err.message, 'error')
+    } finally {
+      setIsGeneratingReport(false)
+    }
+  }
+
+  const handleDownloadReport = async (rep) => {
+    const url = await reportService.getReportUrl(rep.path)
+    if (url) window.open(url, '_blank')
+  }
 
   if (!isOpen) return null
 
@@ -321,6 +391,47 @@ export default function DataManagementModal({ isOpen, onClose, onDataChanged }) 
                     </div>
                     <button onClick={() => setConfirmRestoreSnap(snap)} disabled={isProcessing} className="shrink-0 text-[11px] font-bold text-sky-600 hover:text-sky-800 disabled:text-slate-300 transition px-2 py-1">
                       {t('settings.backup_restore_btn')}
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="space-y-3 bg-violet-50 border border-violet-100 rounded-2xl p-4">
+            <div>
+              <h4 className="font-bold text-sm text-violet-700">{t('settings.report_title')}</h4>
+              <p className="text-xs text-violet-500/80 mt-1">{t('settings.report_desc')}</p>
+            </div>
+            <div>
+              <label className="block text-xs text-violet-600 mb-1 font-semibold">{t('settings.report_period_label')}</label>
+              <select value={reportPeriod} onChange={handleReportPeriodChange}
+                className="w-full border border-violet-200 rounded-xl px-3 py-2 text-sm bg-white focus:outline-none focus:border-violet-500">
+                <option value="off">{t('settings.report_period_off')}</option>
+                <option value="mingguan">{t('settings.report_period_weekly')}</option>
+                <option value="bulanan">{t('settings.report_period_monthly')}</option>
+              </select>
+            </div>
+            <div className="flex gap-2">
+              <button onClick={handleGenerateReport} disabled={isGeneratingReport || isProcessing} className="flex-1 bg-violet-600 hover:bg-violet-700 disabled:bg-slate-300 text-white text-xs font-bold py-3 rounded-xl transition shadow flex items-center justify-center gap-2">
+                <i className="fa-solid fa-file-csv"></i> {t('settings.report_generate')}
+              </button>
+              <button onClick={handlePrintReport} disabled={isGeneratingReport || isProcessing} className="flex-1 bg-white border border-violet-200 text-violet-700 hover:bg-violet-100 disabled:text-slate-300 text-xs font-bold py-3 rounded-xl transition flex items-center justify-center gap-2">
+                <i className="fa-solid fa-file-pdf"></i> {t('settings.report_print')}
+              </button>
+            </div>
+            {reports.length === 0 ? (
+              <p className="text-[11px] text-slate-400 text-center">{t('settings.report_empty')}</p>
+            ) : (
+              <div className="space-y-1.5">
+                {reports.map(rep => (
+                  <div key={rep.path} className="flex items-center justify-between bg-white border border-violet-100 rounded-xl px-3 py-2">
+                    <div className="min-w-0">
+                      <p className="text-xs font-bold text-slate-700 truncate">{rep.name}</p>
+                      <p className="text-[10px] text-slate-400">{rep.created_at ? new Date(rep.created_at).toLocaleString() : ''}</p>
+                    </div>
+                    <button onClick={() => handleDownloadReport(rep)} className="shrink-0 text-[11px] font-bold text-violet-600 hover:text-violet-800 transition px-2 py-1">
+                      {t('settings.report_download')}
                     </button>
                   </div>
                 ))}
