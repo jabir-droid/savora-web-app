@@ -2,18 +2,21 @@ import React, { useState, useEffect } from 'react'
 import { accountService } from '../../services/accountService'
 import { useToast } from '../../contexts/ToastContext'
 import { useLanguage } from '../../contexts/LanguageContext'
+import { SUPPORTED_CURRENCIES } from '../../utils/currency'
 
 export default function EditAccountModal({ isOpen, onClose, onSuccess, account }) {
   const { t } = useLanguage()
   const { showToast } = useToast()
   const [namaakun, setNamaAkun] = useState('')
   const [tipe, setTipe] = useState('CASH')
+  const [mataUang, setMataUang] = useState('IDR')
   const [isLoading, setIsLoading] = useState(false)
 
   useEffect(() => {
     if (account) {
       setNamaAkun(account.namaakun)
       setTipe(account.tipe)
+      setMataUang(account.mata_uang || 'IDR')
     }
   }, [account])
 
@@ -24,7 +27,8 @@ export default function EditAccountModal({ isOpen, onClose, onSuccess, account }
     try {
       await accountService.updateAccount(account.id, {
         namaakun,
-        tipe
+        tipe,
+        mata_uang: mataUang
       })
       showToast(t('modal_acc.success_edit'), 'success')
       onSuccess()
@@ -66,6 +70,16 @@ export default function EditAccountModal({ isOpen, onClose, onSuccess, account }
               <option value="E-WALLET">{t('modal_acc.type_ewallet')}</option>
             </select>
             <p className="text-[10px] text-slate-400 mt-2">{t('modal_acc.note')}</p>
+          </div>
+
+          <div>
+            <label className="block text-xs text-slate-500 mb-1 font-semibold">{t('modal_acc.currency_label')}</label>
+            <select value={mataUang} onChange={e => setMataUang(e.target.value)}
+              className="w-full border-2 border-slate-200 rounded-xl px-3 py-2 text-sm font-semibold text-slate-800 focus:outline-none focus:border-savora-800 transition-all duration-300">
+              {SUPPORTED_CURRENCIES.map(c => (
+                <option key={c.kode} value={c.kode}>{c.nama}</option>
+              ))}
+            </select>
           </div>
 
           <button type="submit" disabled={isLoading}

@@ -9,6 +9,7 @@ import { useLanguage } from '../../contexts/LanguageContext'
 import { triggerHaptic } from '../../utils/haptics'
 import { CATEGORY_ICONS } from '../../utils/categoryIcons'
 import { formatNumberInput, parseNumberInput, formatCurrency } from '../../utils/formatCurrency'
+import { currencySymbol } from '../../utils/currency'
 
 const MAX_NOMINAL = 999000000000 // Rp999 miliar — batas maksimum nominal transaksi
 
@@ -251,7 +252,7 @@ export default function TransactionModal({ isOpen, onClose, onSuccess, initialDa
           <div>
             <label className="block text-xs text-slate-500 mb-1 font-semibold">{t('modal_tx.amount_label')}</label>
             <div className="relative">
-              <span className="absolute left-3 top-2.5 font-bold text-slate-400 text-sm">{localStorage.getItem('savora_currency') === 'USD' ? '$' : 'Rp'}</span>
+              <span className="absolute left-3 top-2.5 font-bold text-slate-400 text-sm">{currencySymbol((accounts.find(a => a.namaakun === akun) || {}).mata_uang || 'IDR')}</span>
               <input type="text" inputMode="numeric" required value={jumlah} onChange={e => setJumlah(formatNumberInput(e.target.value))}
                 placeholder={t('modal_tx.amount_ph')}
                 className="w-full border-2 border-slate-200 rounded-xl px-3 py-2 text-base font-bold text-slate-800 focus:outline-none focus:border-savora-800 pl-10 transition-all duration-300"
@@ -360,6 +361,17 @@ export default function TransactionModal({ isOpen, onClose, onSuccess, initialDa
                   <option key={acc.id} value={acc.namaakun}>{acc.namaakun}</option>
                 ))}
               </select>
+              {(() => {
+                const src = accounts.find(a => a.namaakun === akun)
+                const dst = accounts.find(a => a.namaakun === transferKe)
+                const fxDiffers = src && dst && (src.mata_uang || 'IDR') !== (dst.mata_uang || 'IDR')
+                return fxDiffers ? (
+                  <p className="text-[11px] text-amber-600 mt-1.5 flex items-start gap-1">
+                    <i className="fa-solid fa-triangle-exclamation mt-0.5"></i>
+                    <span>{t('modal_tx.fx_transfer_warn')}</span>
+                  </p>
+                ) : null
+              })()}
             </div>
           )}
 

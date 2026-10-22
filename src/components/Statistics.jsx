@@ -1,6 +1,8 @@
-import React, { useState, useEffect, useMemo } from 'react'
+import React, { useState, useEffect, useMemo, useCallback } from 'react'
 import { transactionService } from '../services/transactionService'
 import { accountService } from '../services/accountService'
+import { currencyService } from '../services/currencyService'
+import { convertToBase } from '../utils/currency'
 import { formatCurrency } from '../utils/formatCurrency'
 import { SkeletonCard } from './SkeletonLoader'
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts'
@@ -14,6 +16,7 @@ export default function Statistics() {
   const [subTab, setSubTab] = useState('cashflow')
   const [transactions, setTransactions] = useState([])
   const [accounts, setAccounts] = useState([])
+  const [rates, setRates] = useState({})
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
@@ -22,8 +25,10 @@ export default function Statistics() {
         setIsLoading(true)
         const txData = await transactionService.getTransactions()
         const accData = await accountService.getAccounts()
+        const rateData = await currencyService.getRates()
         setTransactions(txData || [])
         setAccounts(accData || [])
+        setRates(rateData || {})
       } catch (e) {
         console.error(e)
       } finally {
@@ -37,6 +42,17 @@ export default function Statistics() {
     return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(number || 0)
   }
 
+  // Peta akun -> mata uang untuk konversi ke mata uang dasar (IDR)
+  const currencyByAccount = useMemo(() => {
+    const map = {}
+    accounts.forEach(a => { map[a.namaakun] = a.mata_uang || 'IDR' })
+    return map
+  }, [accounts])
+  const toBase = useCallback(
+    (t) => convertToBase(t.jumlah, currencyByAccount[t.akun] || 'IDR', rates),
+    [currencyByAccount, rates]
+  )
+
   // --- CHART CALCULATION ---
   const chartData = useMemo(() => {
     const daysData = {}
@@ -46,15 +62,15 @@ export default function Statistics() {
       if (!t.created_at) return
       const date = new Date(t.created_at)
       const day = date.getDate()
-      
+
       if (day >= 1 && day <= 31) {
-        if (t.tipe === 'Pemasukan') daysData[day].inc += Number(t.jumlah)
-        else if (t.tipe === 'Pengeluaran') daysData[day].exp += Number(t.jumlah)
+        if (t.tipe === 'Pemasukan') daysData[day].inc += toBase(t)
+        else if (t.tipe === 'Pengeluaran') daysData[day].exp += toBase(t)
       }
     })
 
     return Object.values(daysData)
-  }, [transactions])
+  }, [transactions, toBase])
 
   // --- BREAKDOWN CALCULATION ---
   const breakdownData = useMemo(() => {
@@ -62,22 +78,23 @@ export default function Statistics() {
     const catMap = {}
     transactions.forEach(t => {
       if (t.tipe === 'Pengeluaran') {
-        catMap[t.kategori] = (catMap[t.kategori] || 0) + Number(t.jumlah)
-        total += Number(t.jumlah)
+        const base = toBase(t)
+        catMap[t.kategori] = (catMap[t.kategori] || 0) + base
+        total += base
       }
     })
-    return { 
-      total, 
-      categories: Object.entries(catMap).sort((a,b) => b[1] - a[1]).map(c => ({ name: c[0], value: c[1] })) 
+    return {
+      total,
+      categories: Object.entries(catMap).sort((a,b) => b[1] - a[1]).map(c => ({ name: c[0], value: c[1] }))
     }
-  }, [transactions])
+  }, [transactions, toBase])
 
   // --- ASSETS CALCULATION ---
   const assetsData = useMemo(() => {
     let total = 0
-    accounts.forEach(a => total += Number(a.saldo))
-    return { total, accounts: [...accounts].sort((a,b) => Number(b.saldo) - Number(a.saldo)) }
-  }, [accounts])
+    accounts.forEach(a => { total += convertToBase(a.saldo, a.mata_uang || 'IDR', rates) })
+    return { total, accounts: [...accounts].sort((a,b) => convertToBase(b.saldo, b.mata_uang || 'IDR', rates) - convertToBase(a.saldo, a.mata_uang || 'IDR', rates)) }
+  }, [accounts, rates])
 
   const activeTotal = assetsData.total
 

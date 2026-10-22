@@ -20,6 +20,7 @@ import DataManagementModal from './modals/DataManagementModal'
 import AboutModal from './modals/AboutModal'
 import TelegramModal from './modals/TelegramModal'
 import AiConfigModal from './modals/AiConfigModal'
+import KursModal from './modals/KursModal'
 
 export default function Settings() {
   const { t } = useLanguage()
@@ -216,6 +217,12 @@ export default function Settings() {
           onClick={() => { triggerHaptic([30]); setActiveModal('ai') }} 
         />
         <MenuItem 
+          icon="fa-arrow-right-arrow-left" 
+          label={t('settings.rates_title')} 
+          colorClass="bg-teal-50 text-teal-600" 
+          onClick={() => { triggerHaptic([30]); setActiveModal('rates') }} 
+        />
+        <MenuItem 
           icon="fa-moon" 
           label={`${t('settings.theme')} — ${theme === 'dark' ? t('settings.theme_on') : t('settings.theme_off')}`} 
           colorClass="bg-cyan-50 text-cyan-600" 
@@ -278,6 +285,11 @@ export default function Settings() {
         onClose={() => setActiveModal(null)}
         initialSettings={settings}
         onSettingsChange={(newSettings) => setSettings({ ...settings, ...newSettings })}
+      />
+
+      <KursModal
+        isOpen={activeModal === 'rates'}
+        onClose={() => setActiveModal(null)}
       />
 
       {/* Reused Original Modals */}

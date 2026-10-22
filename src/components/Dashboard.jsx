@@ -4,6 +4,7 @@ import { transactionService } from '../services/transactionService'
 import { useAuth } from '../contexts/AuthContext'
 import { useLanguage } from '../contexts/LanguageContext'
 import { formatCurrency } from '../utils/formatCurrency'
+import { formatMoneyNative } from '../utils/currency'
 import { useToast } from '../contexts/ToastContext'
 import { settingsService } from '../services/settingsService'
 import TransactionModal from './modals/TransactionModal'
@@ -247,13 +248,19 @@ export default function Dashboard({ setActiveTab }) {
   // Derive displayed balance
   let displayedBalance = totalBalance
   let activeAccountLabel = t('dashboard.total_dana')
+  let displayedCurrency = 'IDR'
+  const currencyByAccount = {}
+  accounts.forEach(a => { currencyByAccount[a.namaakun] = a.mata_uang || 'IDR' })
   if (selectedAccount) {
     const acc = accounts.find(a => a.namaakun === selectedAccount)
     if (acc) {
       displayedBalance = acc.saldo
+      displayedCurrency = acc.mata_uang || 'IDR'
       activeAccountLabel = `Saldo ${acc.namaakun}`
     }
   }
+  const formatAccountMoney = (amount, kode) =>
+    (kode && kode !== 'IDR' ? formatMoneyNative(amount, kode) : formatCurrency(amount))
 
   return (
     <section className="space-y-6 animate-fade-in">
@@ -274,7 +281,7 @@ export default function Dashboard({ setActiveTab }) {
             </div>
             <div className="flex items-center gap-3 mt-1">
               <h3 className="text-3xl md:text-4xl font-extrabold tracking-tight">
-                {isBalanceHidden ? '********' : formatCurrency(displayedBalance)}
+                {isBalanceHidden ? '********' : formatAccountMoney(displayedBalance, displayedCurrency)}
               </h3>
               <button type="button" onClick={toggleBalanceVisibility} className="p-2 text-slate-300 hover:text-white transition relative z-20 cursor-pointer">
                 <i className={`fa-solid ${isBalanceHidden ? 'fa-eye-slash' : 'fa-eye'}`}></i>
@@ -411,7 +418,7 @@ export default function Dashboard({ setActiveTab }) {
                 </p>
                 <p className={`text-sm font-extrabold mt-1 ${isActive ? 'text-white' : 'text-slate-800'}`}>{acc.namaakun}</p>
                 <p className={`text-xs font-semibold mt-0.5 ${isActive ? 'text-slate-400' : 'text-slate-500'}`}>
-                  {isBalanceHidden ? '******' : formatCurrency(acc.saldo)}
+                  {isBalanceHidden ? '******' : formatAccountMoney(acc.saldo, acc.mata_uang || 'IDR')}
                 </p>
               </div>
             )
@@ -494,7 +501,7 @@ export default function Dashboard({ setActiveTab }) {
                     tx.tipe === 'Pengeluaran' ? 'text-rose-500' : 'text-blue-500'
                   }`}>
                     {isBalanceHidden ? '******' : (
-                      <>{tx.tipe === 'Pemasukan' ? '+' : tx.tipe === 'Pengeluaran' ? '-' : ''} {formatCurrency(tx.jumlah)}</>
+                      <>{tx.tipe === 'Pemasukan' ? '+' : tx.tipe === 'Pengeluaran' ? '-' : ''} {formatAccountMoney(tx.jumlah, currencyByAccount[tx.akun] || 'IDR')}</>
                     )}
                   </div>
                 </div>

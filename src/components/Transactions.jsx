@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react'
 import { transactionService } from '../services/transactionService'
 import { formatCurrency } from '../utils/formatCurrency'
+import { accountService } from '../services/accountService'
+import { formatMoneyNative } from '../utils/currency'
 import { downloadCsv } from '../utils/csv'
 import { activityService } from '../services/activityService'
 import { useToast } from '../contexts/ToastContext'
@@ -14,6 +16,26 @@ export default function Transactions() {
   const { t } = useLanguage()
   const { showToast } = useToast()
   const [transactions, setTransactions] = useState([])
+  const [accountCurrencies, setAccountCurrencies] = useState({})
+
+  // Peta akun -> mata uang: nominal akun asing ditampilkan apa adanya
+  useEffect(() => {
+    let cancelled = false
+    accountService.getAccounts()
+      .then(rows => {
+        if (cancelled) return
+        const map = {}
+        ;(rows || []).forEach(a => { map[a.namaakun] = a.mata_uang || 'IDR' })
+        setAccountCurrencies(map)
+      })
+      .catch(() => {})
+    return () => { cancelled = true }
+  }, [])
+
+  const fmtTxAmount = (tx) => {
+    const kode = accountCurrencies[tx.akun] || 'IDR'
+    return kode !== 'IDR' ? formatMoneyNative(tx.jumlah, kode) : formatCurrency(tx.jumlah)
+  }
   const [isLoading, setIsLoading] = useState(true)
   const [isDeleting, setIsDeleting] = useState(false)
   const [confirmModal, setConfirmModal] = useState({ isOpen: false, item: null })
@@ -309,7 +331,7 @@ export default function Transactions() {
                       tx.tipe === 'Pemasukan' ? 'text-emerald-500' : 
                       tx.tipe === 'Pengeluaran' ? 'text-rose-500' : 'text-blue-500'
                     }`}>
-                      {tx.tipe === 'Pemasukan' ? '+' : tx.tipe === 'Pengeluaran' ? '-' : ''} {formatCurrency(tx.jumlah)}
+                      {tx.tipe === 'Pemasukan' ? '+' : tx.tipe === 'Pengeluaran' ? '-' : ''} {fmtTxAmount(tx)}
                     </td>
                     <td className="py-3 px-4 text-center">
                       <div className="flex items-center justify-center gap-2">
@@ -371,7 +393,7 @@ export default function Transactions() {
                       tx.tipe === 'Pemasukan' ? 'text-emerald-500' : 
                       tx.tipe === 'Pengeluaran' ? 'text-rose-500' : 'text-blue-500'
                     }`}>
-                      {tx.tipe === 'Pemasukan' ? '+' : tx.tipe === 'Pengeluaran' ? '-' : ''} {formatCurrency(tx.jumlah)}
+                      {tx.tipe === 'Pemasukan' ? '+' : tx.tipe === 'Pengeluaran' ? '-' : ''} {fmtTxAmount(tx)}
                    </span>
                  </div>
                </div>

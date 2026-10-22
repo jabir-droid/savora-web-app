@@ -2,6 +2,8 @@ import { supabase } from '../supabaseClient'
 import { accountService } from './accountService'
 import { notificationService } from './notificationService'
 import { receiptService } from './receiptService'
+import { currencyService } from './currencyService'
+import { convertToBase } from '../utils/currency'
 
 export const transactionService = {
   /**
@@ -41,8 +43,17 @@ export const transactionService = {
     }
 
     const { data, error } = await query
-    
+
     if (error) throw error
+
+    // Multi-mata uang: arus dari akun asing dikonversi ke IDR
+    // memakai kurs efektif, agar ringkasan gabungan konsisten.
+    const [{ data: accRows }, rates] = await Promise.all([
+      supabase.from('accounts').select('namaakun, mata_uang'),
+      currencyService.getRates()
+    ])
+    const currencyByAccount = {}
+    ;(accRows || []).forEach(a => { currencyByAccount[a.namaakun] = a.mata_uang || 'IDR' })
 
     const summary = {
       pemasukan: 0,
@@ -51,11 +62,12 @@ export const transactionService = {
 
     if (data) {
       data.forEach(tx => {
-        if (tx.tipe === 'Pemasukan') summary.pemasukan += Number(tx.jumlah)
-        if (tx.tipe === 'Pengeluaran') summary.pengeluaran += Number(tx.jumlah)
+        const base = convertToBase(tx.jumlah, currencyByAccount[tx.akun] || 'IDR', rates)
+        if (tx.tipe === 'Pemasukan') summary.pemasukan += base
+        if (tx.tipe === 'Pengeluaran') summary.pengeluaran += base
       })
     }
-    
+
     return summary
   },
 

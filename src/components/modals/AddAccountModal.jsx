@@ -3,12 +3,14 @@ import { accountService } from '../../services/accountService'
 import { useToast } from '../../contexts/ToastContext'
 import { useLanguage } from '../../contexts/LanguageContext'
 import { formatNumberInput, parseNumberInput } from '../../utils/formatCurrency'
+import { SUPPORTED_CURRENCIES, currencySymbol } from '../../utils/currency'
 
 export default function AddAccountModal({ isOpen, onClose, onSuccess }) {
   const { t } = useLanguage()
   const { showToast } = useToast()
   const [namaakun, setNamaAkun] = useState('')
   const [tipe, setTipe] = useState('CASH')
+  const [mataUang, setMataUang] = useState('IDR')
   const [saldo, setSaldo] = useState('')
   const [isLoading, setIsLoading] = useState(false)
 
@@ -17,13 +19,14 @@ export default function AddAccountModal({ isOpen, onClose, onSuccess }) {
     setIsLoading(true)
     
     try {
-      await accountService.createAccount(namaakun, tipe, parseNumberInput(saldo))
+      await accountService.createAccount(namaakun, tipe, parseNumberInput(saldo), mataUang)
       showToast(t('modal_acc.success'), 'success')
       onSuccess()
       onClose()
       setNamaAkun('')
       setSaldo('')
       setTipe('CASH')
+      setMataUang('IDR')
     } catch (e) {
       showToast(t('modal_acc.fail') + e.message, 'error')
     } finally {
@@ -63,9 +66,19 @@ export default function AddAccountModal({ isOpen, onClose, onSuccess }) {
           </div>
 
           <div>
+            <label className="block text-xs text-slate-500 mb-1 font-semibold">{t('modal_acc.currency_label')}</label>
+            <select value={mataUang} onChange={e => setMataUang(e.target.value)}
+              className="w-full border-2 border-slate-200 rounded-xl px-3 py-2 text-sm font-semibold text-slate-800 focus:outline-none focus:border-savora-800 transition-all duration-300">
+              {SUPPORTED_CURRENCIES.map(c => (
+                <option key={c.kode} value={c.kode}>{c.nama}</option>
+              ))}
+            </select>
+          </div>
+
+          <div>
             <label className="block text-xs text-slate-500 mb-1 font-semibold">{t('modal_acc.balance_label')}</label>
             <div className="relative">
-              <span className="absolute left-3 top-2.5 font-bold text-slate-400 text-sm">Rp</span>
+              <span className="absolute left-3 top-2.5 font-bold text-slate-400 text-sm">{currencySymbol(mataUang)}</span>
               <input type="text" inputMode="numeric" value={saldo} onChange={e => setSaldo(formatNumberInput(e.target.value))}
                 placeholder="0"
                 className="w-full border-2 border-slate-200 rounded-xl px-3 py-2 text-base font-bold text-slate-800 focus:outline-none focus:border-savora-800 pl-10 transition-all duration-300"

@@ -1,4 +1,6 @@
 import { supabase } from '../supabaseClient'
+import { currencyService } from './currencyService'
+import { convertToBase } from '../utils/currency'
 
 export const accountService = {
   /**
@@ -20,24 +22,27 @@ export const accountService = {
   async getTotalBalance() {
     const { data, error } = await supabase
       .from('accounts')
-      .select('saldo')
-    
+      .select('saldo, mata_uang')
+
     if (error) throw error
 
+    // Multi-mata uang: saldo akun asing dikonversi ke IDR (mata
+    // uang dasar) memakai kurs efektif pengguna.
+    const rates = await currencyService.getRates()
     let total = 0
     if (data) {
       data.forEach(acc => {
-        total += Number(acc.saldo)
+        total += convertToBase(acc.saldo, acc.mata_uang || 'IDR', rates)
       })
     }
-    
+
     return total
   },
 
   /**
    * Membuat akun/dompet baru (hanya untuk inisialisasi awal)
    */
-  async createAccount(namaakun, tipe, saldo = 0) {
+  async createAccount(namaakun, tipe, saldo = 0, mataUang = 'IDR') {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) throw new Error("Anda belum login")
 
@@ -47,7 +52,8 @@ export const accountService = {
         user_id: user.id,
         namaakun,
         tipe,
-        saldo
+        saldo,
+        mata_uang: mataUang || 'IDR'
       }])
       .select()
 
