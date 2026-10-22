@@ -63,17 +63,34 @@ export const backupService = {
   /**
    * Snapshot otomatis harian (dipanggil saat login). Best-effort:
    * tidak pernah melempar dan tidak mengganggu alur masuk.
+   *
+   * Gerbang diperkuat (Program Penyempurnaan): sesi diambil lebih
+   * dulu agar konteks auth pasti tersedia, query difilter per
+   * pemilik, dan penanda lokal per akun mencegah snapshot beruntun
+   * saat beberapa login terjadi berdekatan (balapan propagasi JWT
+   * yang sempat membuat gerbang 24 jam terlewati).
    */
   async maybeAutoSnapshot() {
     try {
+      const { data: { session } } = await supabase.auth.getSession()
+      const userId = session && session.user ? session.user.id : null
+      if (!userId) return
+
+      const markerKey = `savora_last_auto_backup_${userId}`
+      let marker = 0
+      try { marker = Number(localStorage.getItem(markerKey)) || 0 } catch { /* abaikan */ }
+      if (Date.now() - marker < AUTO_INTERVAL_MS) return
+
       const { data: latest } = await supabase
         .from('user_backups')
         .select('created_at')
+        .eq('user_id', userId)
         .order('created_at', { ascending: false })
         .limit(1)
       const last = latest && latest[0] ? new Date(latest[0].created_at).getTime() : 0
-      if (Date.now() - last > AUTO_INTERVAL_MS) {
+      if (Date.now() - Math.max(last, marker) > AUTO_INTERVAL_MS) {
         await this.createSnapshot('otomatis')
+        try { localStorage.setItem(markerKey, String(Date.now())) } catch { /* abaikan */ }
       }
     } catch { /* abaikan */ }
   },
