@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { supabase } from '../../supabaseClient'
 import { settingsService } from '../../services/settingsService'
 import { useToast } from '../../contexts/ToastContext'
@@ -58,7 +59,7 @@ export default function TelegramModal({ isOpen, onClose, initialSettings, onSett
 
   const isLinked = !!initialSettings?.telegram_chat_id
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center p-4">
       <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={onClose}></div>
       
@@ -144,6 +145,7 @@ export default function TelegramModal({ isOpen, onClose, initialSettings, onSett
           )}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }

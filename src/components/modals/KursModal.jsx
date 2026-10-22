@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { currencyService } from '../../services/currencyService'
 import { useToast } from '../../contexts/ToastContext'
 import { useLanguage } from '../../contexts/LanguageContext'
@@ -55,9 +56,11 @@ export default function KursModal({ isOpen, onClose }) {
     }
   }
 
-  return (
-    <div className="fixed inset-0 bg-slate-900/60 z-50 flex items-center justify-center p-4 animate-fade-in">
-      <div className="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl max-h-[90vh] overflow-y-auto">
+  if (!isOpen) return null
+
+  return createPortal(
+    <div className="fixed inset-0 bg-slate-900/60 z-50 flex items-center justify-center p-4 transition-opacity duration-300">
+      <div className="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl transform transition-transform duration-300 max-h-[90vh] overflow-y-auto">
         <div className="flex justify-between items-center mb-2">
           <h3 className="font-extrabold text-lg text-slate-800">{t('settings.rates_title')}</h3>
           <button onClick={onClose} className="p-1.5 text-slate-400 hover:text-slate-600 rounded-xl transition">
@@ -96,6 +99,7 @@ export default function KursModal({ isOpen, onClose }) {
           </div>
         )}
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }

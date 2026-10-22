@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { debtService } from '../services/debtService'
 import { accountService } from '../services/accountService'
 import { useLanguage } from '../contexts/LanguageContext'
@@ -300,13 +301,13 @@ export default function Debts() {
       )}
 
       {/* Modal Tambah */}
-      {isModalOpen && (
-        <div className="fixed inset-0 bg-slate-900/60 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl">
+      {isModalOpen && createPortal(
+        <div className="fixed inset-0 bg-slate-900/60 z-50 flex items-center justify-center p-4 transition-opacity duration-300">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl transform transition-transform duration-300 max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-6">
-              <h3 className="font-extrabold text-lg text-slate-800">{t('debts.modal_add_title')}</h3>
-              <button onClick={() => setIsModalOpen(false)} className="text-slate-400 hover:text-slate-600">
-                <i className="fa-solid fa-xmark"></i>
+              <h3 className="font-extrabold text-xl text-slate-800">{t('debts.modal_add_title')}</h3>
+              <button onClick={() => setIsModalOpen(false)} className="p-1.5 text-slate-400 hover:text-slate-600 rounded-xl transition">
+                <i className="fa-solid fa-xmark text-lg"></i>
               </button>
             </div>
             
@@ -342,17 +343,18 @@ export default function Debts() {
               <button type="submit" className="w-full bg-savora-800 text-white font-bold py-3 rounded-xl mt-2">{t('debts.modal_btn_save')}</button>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Modal Bayar */}
-      {activeDebtToPay && (
-        <div className="fixed inset-0 bg-slate-900/60 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl">
+      {activeDebtToPay && createPortal(
+        <div className="fixed inset-0 bg-slate-900/60 z-50 flex items-center justify-center p-4 transition-opacity duration-300">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl transform transition-transform duration-300 max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-6">
-              <h3 className="font-extrabold text-lg text-slate-800">{t('debts.modal_pay_title')}</h3>
-              <button onClick={() => setActiveDebtToPay(null)} className="text-slate-400 hover:text-slate-600">
-                <i className="fa-solid fa-xmark"></i>
+              <h3 className="font-extrabold text-xl text-slate-800">{t('debts.modal_pay_title')}</h3>
+              <button onClick={() => setActiveDebtToPay(null)} className="p-1.5 text-slate-400 hover:text-slate-600 rounded-xl transition">
+                <i className="fa-solid fa-xmark text-lg"></i>
               </button>
             </div>
             
@@ -381,7 +383,8 @@ export default function Debts() {
               <button type="submit" className="w-full bg-savora-800 text-white font-bold py-3 rounded-xl mt-2">{t('debts.modal_btn_pay')}</button>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       <ConfirmModal

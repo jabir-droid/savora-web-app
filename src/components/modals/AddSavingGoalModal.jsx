@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+import { createPortal } from 'react-dom'
 import { savingService } from '../../services/savingService'
 import { useToast } from '../../contexts/ToastContext'
 import { useLanguage } from '../../contexts/LanguageContext'
@@ -55,7 +56,7 @@ export default function AddSavingGoalModal({ isOpen, onClose, onSuccess }) {
 
   if (!isOpen) return null
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 bg-slate-900/60 z-50 flex items-center justify-center p-4 transition-opacity duration-300">
       <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl transform transition-transform duration-300 max-h-[90vh] overflow-y-auto">
         <div className="flex justify-between items-center mb-6">
@@ -140,6 +141,7 @@ export default function AddSavingGoalModal({ isOpen, onClose, onSuccess }) {
           </button>
         </form>
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }

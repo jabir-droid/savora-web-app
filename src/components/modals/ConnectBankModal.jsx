@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { accountService } from '../../services/accountService'
 import { notificationService } from '../../services/notificationService'
 import { useToast } from '../../contexts/ToastContext'
@@ -61,9 +62,9 @@ export default function ConnectBankModal({ isOpen, onClose, onSuccess }) {
 
   if (!isOpen) return null
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 bg-slate-900/60 z-50 flex items-center justify-center p-4 transition-opacity duration-300">
-      <div className="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl transform transition-transform duration-300">
+      <div className="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl transform transition-transform duration-300 max-h-[90vh] overflow-y-auto">
         <div className="flex justify-between items-center mb-6">
           <h3 className="font-extrabold text-lg text-slate-800">
             {step === 1 ? t('modal_bank.title_select') : step === 2 ? `${t('modal_bank.title_login')} ${selectedBank?.name}` : t('modal_bank.title_connect')}
@@ -134,6 +135,7 @@ export default function ConnectBankModal({ isOpen, onClose, onSuccess }) {
           </div>
         )}
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }

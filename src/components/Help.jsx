@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+import { createPortal } from 'react-dom'
 import { useLanguage } from '../contexts/LanguageContext'
 import { useToast } from '../contexts/ToastContext'
 
@@ -156,7 +157,9 @@ export default function Help({ setActiveTab }) {
       </section>
 
       {/* Guide Pop-up Modal */}
-      {activeGuide === 'ocr' && (
+      {activeGuide && createPortal(
+        <>
+          {activeGuide === 'ocr' && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center px-4">
           <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={closeGuideModal}></div>
           <div className="relative bg-white rounded-3xl w-full max-w-[480px] shadow-2xl p-6 md:p-8 border border-slate-200 animate-fade-in">
@@ -381,6 +384,9 @@ export default function Help({ setActiveTab }) {
             </div>
           </div>
         </div>
+      )}
+        </>,
+        document.body
       )}
     </>
   )

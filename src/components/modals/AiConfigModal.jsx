@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { settingsService } from '../../services/settingsService'
 import { useToast } from '../../contexts/ToastContext'
 import { useLanguage } from '../../contexts/LanguageContext'
@@ -56,7 +57,7 @@ export default function AiConfigModal({ isOpen, onClose, initialSettings, onSett
 
   if (!isOpen) return null
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center p-4">
       <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={onClose}></div>
 
@@ -137,6 +138,7 @@ export default function AiConfigModal({ isOpen, onClose, initialSettings, onSett
         onCancel={() => setShowDeleteConfirm(false)}
         type="warning"
       />
-    </div>
+    </div>,
+    document.body
   )
 }

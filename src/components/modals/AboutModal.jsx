@@ -1,4 +1,5 @@
 import React from 'react'
+import { createPortal } from 'react-dom'
 import { useLanguage } from '../../contexts/LanguageContext'
 
 export default function AboutModal({ isOpen, onClose }) {
@@ -6,7 +7,7 @@ export default function AboutModal({ isOpen, onClose }) {
 
   if (!isOpen) return null
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-fade-in" onClick={onClose}>
       <div className="bg-white rounded-3xl w-full max-w-sm shadow-xl flex flex-col animate-slide-up" onClick={e => e.stopPropagation()}>
         <div className="flex justify-between items-center p-5 border-b border-slate-100 shrink-0">
@@ -45,6 +46,7 @@ export default function AboutModal({ isOpen, onClose }) {
           </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }

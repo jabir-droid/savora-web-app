@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { supabase } from '../../supabaseClient'
 import { triggerHaptic } from '../../utils/haptics'
 import { useToast } from '../../contexts/ToastContext'
@@ -89,7 +90,9 @@ export default function EditProfileModal({ isOpen, onClose, onSuccess, initialNa
     }
   }
 
-  return (
+  if (!isOpen) return null
+
+  return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-fade-in">
       <div className="bg-white rounded-3xl w-full max-w-sm shadow-xl overflow-hidden flex flex-col animate-slide-up">
         <div className="flex justify-between items-center p-5 border-b border-slate-100">
@@ -145,6 +148,7 @@ export default function EditProfileModal({ isOpen, onClose, onSuccess, initialNa
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }

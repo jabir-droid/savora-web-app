@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { accountService } from '../../services/accountService'
 import { useToast } from '../../contexts/ToastContext'
 import { useLanguage } from '../../contexts/LanguageContext'
@@ -42,7 +43,7 @@ export default function EditAccountModal({ isOpen, onClose, onSuccess, account }
 
   if (!isOpen || !account) return null
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 bg-slate-900/60 z-50 flex items-center justify-center p-4 transition-opacity duration-300">
       <div className="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl transform transition-transform duration-300 max-h-[90vh] overflow-y-auto">
         <div className="flex justify-between items-center mb-6">
@@ -88,6 +89,7 @@ export default function EditAccountModal({ isOpen, onClose, onSuccess, account }
           </button>
         </form>
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }

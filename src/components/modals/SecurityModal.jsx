@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { settingsService } from '../../services/settingsService'
 import { mfaService } from '../../services/mfaService'
 import { activityService } from '../../services/activityService'
@@ -242,7 +243,9 @@ export default function SecurityModal({ isOpen, onClose, initialSettings, onSett
 
 
 
-  return (
+  if (!isOpen) return null
+
+  return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-fade-in">
       <div className="bg-white rounded-3xl w-full max-w-md shadow-xl flex flex-col max-h-[90vh] animate-slide-up">
         <div className="flex justify-between items-center p-5 border-b border-slate-100 shrink-0">
@@ -426,6 +429,7 @@ export default function SecurityModal({ isOpen, onClose, initialSettings, onSett
           </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }

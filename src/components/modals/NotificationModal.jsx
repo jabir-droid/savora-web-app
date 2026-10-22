@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { notificationService } from '../../services/notificationService'
 import { useLanguage } from '../../contexts/LanguageContext'
 
@@ -37,9 +38,9 @@ export default function NotificationModal({ isOpen, onClose, onViewAll, onMarkAs
 
   if (!isOpen) return null
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 bg-slate-900/60 z-50 flex items-center justify-center p-4 transition-opacity duration-300">
-      <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl transform transition-transform duration-300">
+      <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl transform transition-transform duration-300 max-h-[90vh] overflow-y-auto">
         
         <div className="flex justify-between items-start mb-6">
           <div className="flex items-center gap-3">
@@ -111,6 +112,7 @@ export default function NotificationModal({ isOpen, onClose, onViewAll, onMarkAs
         </div>
 
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }

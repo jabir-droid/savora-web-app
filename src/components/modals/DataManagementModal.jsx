@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { supabase } from '../../supabaseClient'
 import { settingsService } from '../../services/settingsService'
 import { triggerHaptic } from '../../utils/haptics'
@@ -321,7 +322,9 @@ export default function DataManagementModal({ isOpen, onClose, onDataChanged }) 
     }
   }
 
-  return (
+  if (!isOpen) return null
+
+  return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-fade-in">
       <div className="bg-white rounded-3xl w-full max-w-md shadow-xl flex flex-col max-h-[90vh] animate-slide-up">
         <div className="flex justify-between items-center p-5 border-b border-slate-100 shrink-0">
@@ -492,6 +495,7 @@ export default function DataManagementModal({ isOpen, onClose, onDataChanged }) 
           type="warning"
         />
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }
