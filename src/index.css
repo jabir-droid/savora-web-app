@@ -143,3 +143,89 @@
     background: rgba(0, 0, 0, 0.25);
   }
 }
+
+/* ============================================================
+   Mode Gelap (Fase 3) — lapisan penimpa palet inti.
+   Palet aplikasi terstandardisasi (white/slate/savora), jadi
+   kelas .dark pada <html> memetakan ulang utilitas inti di
+   bawah ini; aksen berwarna solid dipertahankan apa adanya.
+   Aturan sengaja TIDAK dibungkus @layer agar menang atas
+   utilitas Tailwind pada kekhususan yang setara.
+   ============================================================ */
+.dark {
+  color-scheme: dark;
+}
+.dark body {
+  background-color: #020617;
+}
+
+/* Permukaan */
+.dark .bg-white { background-color: #0f172a; }
+.dark .bg-slate-50 { background-color: #020617; }
+.dark .bg-slate-100 { background-color: #1e293b; }
+.dark .bg-slate-200 { background-color: #334155; }
+.dark .bg-slate-300 { background-color: #475569; }
+.dark .hover\:bg-slate-50:hover { background-color: #1e293b; }
+.dark .hover\:bg-slate-100:hover { background-color: #1e293b; }
+.dark .hover\:bg-white:hover { background-color: #1e293b; }
+
+/* Teks utama (text-slate-400 & yang lebih terang sengaja
+   dibiarkan: keduanya dipakai di atas permukaan gelap) */
+.dark .text-slate-900 { color: #f8fafc; }
+.dark .text-slate-800 { color: #f1f5f9; }
+.dark .text-slate-700 { color: #e2e8f0; }
+.dark .text-slate-600 { color: #cbd5e1; }
+.dark .text-slate-500 { color: #94a3b8; }
+.dark .text-savora-800 { color: #dbeafe; }
+.dark .text-savora-900 { color: #dbeafe; }
+
+/* Garis tepi & pemisah */
+.dark .border-slate-100 { border-color: #1e293b; }
+.dark .border-slate-200 { border-color: #263449; }
+.dark .border-slate-300 { border-color: #334155; }
+.dark .divide-slate-100 > :not([hidden]) ~ :not([hidden]) { border-color: #1e293b; }
+.dark .divide-slate-200 > :not([hidden]) ~ :not([hidden]) { border-color: #263449; }
+
+/* Ubin aksen pucat -> rona gelap tembus cahaya */
+.dark .bg-emerald-50 { background-color: rgba(16, 185, 129, 0.12); }
+.dark .bg-emerald-100 { background-color: rgba(16, 185, 129, 0.18); }
+.dark .bg-rose-50 { background-color: rgba(244, 63, 94, 0.12); }
+.dark .bg-rose-100 { background-color: rgba(244, 63, 94, 0.18); }
+.dark .bg-orange-50 { background-color: rgba(249, 115, 22, 0.12); }
+.dark .bg-orange-100 { background-color: rgba(249, 115, 22, 0.18); }
+.dark .bg-blue-50 { background-color: rgba(59, 130, 246, 0.12); }
+.dark .bg-blue-100 { background-color: rgba(59, 130, 246, 0.18); }
+.dark .bg-sky-50 { background-color: rgba(14, 165, 233, 0.12); }
+.dark .bg-indigo-50 { background-color: rgba(99, 102, 241, 0.12); }
+.dark .bg-violet-50 { background-color: rgba(139, 92, 246, 0.14); }
+.dark .bg-amber-50 { background-color: rgba(245, 158, 11, 0.12); }
+.dark .bg-cyan-50 { background-color: rgba(6, 182, 212, 0.12); }
+
+/* Kolom formulir di permukaan gelap */
+.dark input,
+.dark select,
+.dark textarea {
+  background-color: #1e293b;
+  color: #f1f5f9;
+}
+.dark input::placeholder,
+.dark textarea::placeholder {
+  color: #64748b;
+}
+
+/* Grafik (Recharts): garis kisi & tooltip */
+.dark .recharts-cartesian-grid line { stroke: #1e293b; }
+.dark .recharts-default-tooltip {
+  background-color: #0f172a !important;
+  border-color: #263449 !important;
+  color: #f1f5f9 !important;
+}
+.dark .recharts-tooltip-label,
+.dark .recharts-tooltip-item {
+  color: #f1f5f9 !important;
+}
+
+/* Kerangka muat & bilah gulir */
+.dark .animate-skeleton-pulse { animation-name: skeletonPulseDark; }
+.dark ::-webkit-scrollbar-thumb { background: #334155; }
+.dark ::-webkit-scrollbar-thumb:hover { background: #475569; }

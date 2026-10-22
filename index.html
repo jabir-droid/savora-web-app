@@ -11,6 +11,18 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Google Fonts: Inter -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <!-- Mode Gelap: terapkan kelas tema sebelum render pertama (anti-kedip) -->
+    <script>
+      try {
+        var t = localStorage.getItem('savora_theme');
+        var dark = t === 'dark' || (!t && window.matchMedia('(prefers-color-scheme: dark)').matches);
+        if (dark) {
+          document.documentElement.classList.add('dark');
+          var m = document.querySelector('meta[name="theme-color"]');
+          if (m) m.setAttribute('content', '#020617');
+        }
+      } catch (e) {}
+    </script>
   </head>
   <body class="bg-slate-50 text-slate-900 font-sans">
     <div id="root"></div>

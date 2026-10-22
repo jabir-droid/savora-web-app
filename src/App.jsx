@@ -21,6 +21,7 @@ import { useToast } from './contexts/ToastContext'
 import { notificationService } from './services/notificationService'
 import { calendarService } from './services/calendarService'
 import { settingsService } from './services/settingsService'
+import { currentTheme, toggleTheme, THEME_EVENT } from './utils/theme'
 
 export default function App() {
   const [isLoginMode, setIsLoginMode] = useState(true)
@@ -31,6 +32,13 @@ export default function App() {
   const [refreshTrigger, setRefreshTrigger] = useState(0)
   const [activeTab, setActiveTab] = useState('dashboard')
   const [currentTime, setCurrentTime] = useState(new Date())
+  const [theme, setTheme] = useState(() => currentTheme())
+
+  useEffect(() => {
+    const onThemeChange = (e) => setTheme(e.detail)
+    window.addEventListener(THEME_EVENT, onThemeChange)
+    return () => window.removeEventListener(THEME_EVENT, onThemeChange)
+  }, [])
   const [unreadNotifsCount, setUnreadNotifsCount] = useState(0)
   const [isNotifModalOpen, setIsNotifModalOpen] = useState(false)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
@@ -597,6 +605,9 @@ export default function App() {
           </div>
           
           <div className="flex items-center gap-2">
+            <button onClick={() => toggleTheme()} title={t('settings.theme')} className="p-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-lg shadow-sm transition">
+              <i className={`fa-solid ${theme === 'dark' ? 'fa-sun' : 'fa-moon'} text-sm`}></i>
+            </button>
             <button onClick={() => setIsNotifModalOpen(true)} className="relative p-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-lg shadow-sm transition">
               <i className="fa-solid fa-bell text-sm"></i>
               {unreadNotifsCount > 0 && (
@@ -628,6 +639,9 @@ export default function App() {
           </div>
 
           <div className="flex items-center gap-4">
+            <button onClick={() => toggleTheme()} title={t('settings.theme')} className="p-2.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-xl shadow-sm transition">
+              <i className={`fa-solid ${theme === 'dark' ? 'fa-sun' : 'fa-moon'} text-sm`}></i>
+            </button>
             <button onClick={() => setIsNotifModalOpen(true)} className="relative p-2.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-xl shadow-sm transition">
               <i className="fa-solid fa-bell text-sm"></i>
               {unreadNotifsCount > 0 && (

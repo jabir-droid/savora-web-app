@@ -7,6 +7,7 @@ import { useLanguage } from '../contexts/LanguageContext'
 import { useAuth } from '../contexts/AuthContext'
 import { useToast } from '../contexts/ToastContext'
 import { triggerHaptic } from '../utils/haptics'
+import { currentTheme, toggleTheme, THEME_EVENT } from '../utils/theme'
 
 // Modals
 import AddAccountModal from './modals/AddAccountModal'
@@ -31,6 +32,13 @@ export default function Settings() {
   const [avatarUrl, setAvatarUrl] = useState(user?.user_metadata?.avatar_url || '')
   const [email, setEmail] = useState(user?.email || '')
   const [summary, setSummary] = useState({ transactions: 0, income: 0, expense: 0 })
+  const [theme, setTheme] = useState(() => currentTheme())
+
+  useEffect(() => {
+    const onThemeChange = (e) => setTheme(e.detail)
+    window.addEventListener(THEME_EVENT, onThemeChange)
+    return () => window.removeEventListener(THEME_EVENT, onThemeChange)
+  }, [])
 
   // Modal States
   const [activeModal, setActiveModal] = useState(null) // 'profile', 'finance', 'security', 'data', 'about'
@@ -206,6 +214,12 @@ export default function Settings() {
           label={t('settings.ai_title')} 
           colorClass="bg-violet-50 text-violet-600" 
           onClick={() => { triggerHaptic([30]); setActiveModal('ai') }} 
+        />
+        <MenuItem 
+          icon="fa-moon" 
+          label={`${t('settings.theme')} — ${theme === 'dark' ? t('settings.theme_on') : t('settings.theme_off')}`} 
+          colorClass="bg-cyan-50 text-cyan-600" 
+          onClick={() => { triggerHaptic([30]); toggleTheme() }} 
         />
       </div>
 
