@@ -10,6 +10,11 @@ import { supabase } from '../supabaseClient'
 
 const num = (v) => Number(v) || 0
 
+// Rantai serial untuk syncSessionDebts: pola baca-lalu-tulis di sana
+// tidak aman bila dua sinkronisasi berjalan bersamaan (bisa menulis
+// baris Piutang jembatan ganda), jadi panggilannya diantrekan.
+let syncChain = Promise.resolve()
+
 async function currentUserId() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) throw new Error('Anda belum login')
@@ -376,6 +381,13 @@ export const orderService = {
   // terbayar = total penyelesaian anak-anaknya. Baris dihapus bila
   // tanggungan nol; ditandai sumbernya agar tidak diedit dari Piutang.
   async syncSessionDebts(sessionId) {
+    const run = () => this._syncSessionDebtsImpl(sessionId)
+    const next = syncChain.then(run, run)
+    syncChain = next.catch(() => {})
+    return next
+  },
+
+  async _syncSessionDebtsImpl(sessionId) {
     try {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
@@ -390,7 +402,15 @@ export const orderService = {
         .eq('user_id', user.id)
         .eq('sumber', 'buku-pesanan')
         .like('sumber_ref', `${sessionId}:%`)
-      const existingByRef = new Map((existing || []).map(d => [d.sumber_ref, d.id]))
+        .order('created_at', { ascending: true })
+      // Satu ref bisa menampung beberapa baris bila duplikat sempat
+      // terbentuk sebelum perbaikan ini; simpan semuanya agar bisa
+      // disembuhkan (satu dipertahankan, sisanya dihapus).
+      const existingByRef = new Map()
+      for (const d of existing || []) {
+        if (!existingByRef.has(d.sumber_ref)) existingByRef.set(d.sumber_ref, [])
+        existingByRef.get(d.sumber_ref).push(d.id)
+      }
       const activeRefs = new Set()
 
       for (const g of groups) {
@@ -410,23 +430,41 @@ export const orderService = {
           sumber_ref: ref
         }
         if (existingByRef.has(ref)) {
+          const ids = existingByRef.get(ref)
           const { error } = await supabase
             .from('debts')
             .update(payload)
-            .eq('id', existingByRef.get(ref))
+            .eq('id', ids[0])
           if (error) throw error
+          // Sembuhkan duplikat lama untuk ref ini.
+          for (const extraId of ids.slice(1)) {
+            await supabase.from('debts').delete().eq('id', extraId)
+          }
         } else {
           const { error } = await supabase
             .from('debts')
             .insert([payload])
-          if (error) throw error
+          if (error) {
+            // Indeks unik sumber_ref menolak sisipan ganda: barisnya
+            // sudah ada — perbarui saja.
+            if (error.code !== '23505') throw error
+            const { error: updError } = await supabase
+              .from('debts')
+              .update(payload)
+              .eq('user_id', user.id)
+              .eq('sumber', 'buku-pesanan')
+              .eq('sumber_ref', ref)
+            if (updError) throw updError
+          }
         }
       }
 
       // Pembayar yang tanggungannya hilang (baris dihapus semua) → cermin dibersihkan.
-      for (const [ref, id] of existingByRef) {
+      for (const [ref, ids] of existingByRef) {
         if (!activeRefs.has(ref)) {
-          await supabase.from('debts').delete().eq('id', id)
+          for (const id of ids) {
+            await supabase.from('debts').delete().eq('id', id)
+          }
         }
       }
     } catch (error) {
