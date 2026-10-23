@@ -10,6 +10,7 @@ import Settings from './components/Settings'
 import Notifications from './components/Notifications'
 import Help from './components/Help'
 import Debts from './components/Debts'
+import Orders from './components/Orders'
 import TransactionModal from './components/modals/TransactionModal'
 import NotificationModal from './components/modals/NotificationModal'
 import PinLock from './components/PinLock'
@@ -532,6 +533,9 @@ export default function App() {
           <button onClick={() => handleMenuClick('debts')} className={`tab-btn w-full flex items-center gap-3 px-4 py-2.5 rounded-xl transition duration-200 text-[13px] ${activeTab === 'debts' ? 'font-bold bg-white/10 text-white' : 'font-medium hover:bg-white/5 text-slate-300'}`}>
             <i className="fa-solid fa-handshake w-5 text-center text-slate-400"></i> <span>{t('menu.debts')}</span>
           </button>
+          <button onClick={() => handleMenuClick('orders')} className={`tab-btn w-full flex items-center gap-3 px-4 py-2.5 rounded-xl transition duration-200 text-[13px] ${activeTab === 'orders' ? 'font-bold bg-white/10 text-white' : 'font-medium hover:bg-white/5 text-slate-300'}`}>
+            <i className="fa-solid fa-clipboard-list w-5 text-center text-slate-400"></i> <span>{t('menu.orders')}</span>
+          </button>
           <button onClick={() => handleMenuClick('calendar')} className={`tab-btn w-full flex items-center gap-3 px-4 py-2.5 rounded-xl transition duration-200 text-[13px] ${activeTab === 'calendar' ? 'font-bold bg-white/10 text-white' : 'font-medium hover:bg-white/5 text-slate-300'}`}>
             <i className="fa-regular fa-calendar w-5 text-center text-slate-400"></i> <span>{t('menu.calendar')}</span>
           </button>
@@ -595,6 +599,7 @@ export default function App() {
               {activeTab === 'savings' && t('header.title.savings')}
               {activeTab === 'statistics' && t('header.title.statistics')}
               {activeTab === 'debts' && t('header.title.debts')}
+              {activeTab === 'orders' && t('header.title.orders')}
               {activeTab === 'calendar' && t('header.title.calendar')}
               {activeTab === 'categories' && t('header.title.categories')}
               {activeTab === 'ai_assistant' && t('header.title.ai')}
@@ -626,6 +631,7 @@ export default function App() {
               {activeTab === 'savings' && t('header.title.savings')}
               {activeTab === 'statistics' && t('header.title.statistics')}
               {activeTab === 'debts' && t('header.title.debts')}
+              {activeTab === 'orders' && t('header.title.orders')}
               {activeTab === 'calendar' && t('header.title.calendar')}
               {activeTab === 'categories' && t('header.title.categories')}
               {activeTab === 'ai_assistant' && t('header.title.ai')}
@@ -668,6 +674,7 @@ export default function App() {
         {activeTab === 'savings' && <Savings key={refreshTrigger} />}
         {activeTab === 'statistics' && <Statistics key={refreshTrigger} />}
         {activeTab === 'debts' && <Debts key={refreshTrigger} />}
+        {activeTab === 'orders' && <Orders key={refreshTrigger} />}
         {activeTab === 'calendar' && <Calendar key={refreshTrigger} />}
         {activeTab === 'categories' && <Categories key={refreshTrigger} />}
         {activeTab === 'ai_assistant' && <AiAssistant key={refreshTrigger} />}
