@@ -84,11 +84,13 @@ export const orderService = {
     return data || []
   },
 
-  async addPerson({ nama, catatan }) {
+  // Peran orang: 'santri' | 'pembayar' | 'keduanya' (bawaan bila kolom
+  // belum ada / tidak diisi — orang lama tetap tampil di semua daftar).
+  async addPerson({ nama, catatan, peran }) {
     const user_id = await currentUserId()
     const { data, error } = await supabase
       .from('order_people')
-      .insert([{ user_id, nama: nama.trim(), catatan: catatan?.trim() || null }])
+      .insert([{ user_id, nama: nama.trim(), catatan: catatan?.trim() || null, peran: peran || 'keduanya' }])
       .select()
     if (error) throw error
     return data[0]
@@ -350,6 +352,19 @@ export const orderService = {
     if (error) throw error
     await this.syncSessionDebts(sessionId)
     return true
+  },
+
+  // Catat pembayaran sejumlah uang untuk SATU anak tertentu (cicil
+  // per anak): tambahkan ke penyelesaian anak itu, dijepit ke totalnya.
+  async recordChildPayment(sessionId, childId, amount) {
+    const { lines, settlements } = await this.getSessionDetail(sessionId)
+    const childTotal = lines
+      .filter(l => l.child_id === childId)
+      .reduce((sum, l) => sum + num(l.harga_snapshot) * (l.qty || 1), 0)
+    const settledNow = (settlements.find(s => s.child_id === childId)?.jumlah_dibayar) || 0
+    const newSettled = Math.min(childTotal, Math.max(0, num(settledNow) + num(amount)))
+    await this.setSettlement(sessionId, childId, newSettled)
+    return newSettled
   },
 
   // Catat pembayaran sejumlah uang dari seorang pembayar: isikan ke

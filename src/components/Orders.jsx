@@ -58,11 +58,13 @@ export default function Orders() {
   const [newItemPrice, setNewItemPrice] = useState('')
   const [newPersonName, setNewPersonName] = useState('')
   const [payInputs, setPayInputs] = useState({}) // payerId -> string angka terformat
+  const [childPayInputs, setChildPayInputs] = useState({}) // `${payerId}:${childId}` -> string angka terformat
+  const [payerDraft, setPayerDraft] = useState({}) // childId -> payerId pilihan "Dibayar oleh" sebelum anak punya baris
 
   // Form kelola
-  const [personForm, setPersonForm] = useState({ nama: '', catatan: '' })
+  const [personForm, setPersonForm] = useState({ nama: '', catatan: '', peran: 'keduanya' })
   const [itemForm, setItemForm] = useState({ nama: '', harga: '', jenis: 'Makanan' })
-  const [editPerson, setEditPerson] = useState(null) // { id, nama, catatan }
+  const [editPerson, setEditPerson] = useState(null) // { id, nama, catatan, peran }
   const [editItem, setEditItem] = useState(null) // { id, nama, harga, jenis }
 
   const nameOf = (id) => people.find(p => p.id === id)?.nama || '-'
@@ -145,6 +147,15 @@ export default function Orders() {
 
   const selectedGroup = childGroups.find(g => g.childId === selectedChildId) || null
   const selectedPayerId = selectedGroup?.payerId || selectedChildId
+  // Peran orang (kolom order_people.peran; orang lama tanpa peran = 'keduanya').
+  const roleOf = (p) => p?.peran || 'keduanya'
+  const isChildRole = (p) => ['santri', 'keduanya'].includes(roleOf(p))
+  const isPayerRole = (p) => ['pembayar', 'keduanya'].includes(roleOf(p))
+  // Pilihan pembayar yang dibuat sebelum anak punya baris harus menempel:
+  // nilai turunan di atas selalu kembali ke anak sendiri bila belum ada baris.
+  const effectivePayerId = (selectedChildId && payerDraft[selectedChildId]) || selectedPayerId
+
+  useEffect(() => { setPayerDraft({}) }, [detail?.session?.id])
   const closed = detail?.session?.ditutup
 
   // ---------- Aksi sesi ----------
@@ -199,7 +210,9 @@ export default function Orders() {
   const handleAddPersonInline = async () => {
     if (!newPersonName.trim()) return
     try {
-      const p = await orderService.addPerson({ nama: newPersonName })
+      // Anak yang ditambahkan dari tab Catat otomatis berperan Santri —
+      // tidak mengotori daftar calon pembayar.
+      const p = await orderService.addPerson({ nama: newPersonName, peran: 'santri' })
       setPeople(prev => [...prev, p].sort((a, b) => a.nama.localeCompare(b.nama)))
       setNewPersonName('')
       setSelectedChildId(p.id)
@@ -219,7 +232,7 @@ export default function Orders() {
         session_id: detail.session.id,
         child_id: selectedChildId,
         item,
-        payer_id: selectedPayerId
+        payer_id: effectivePayerId
       })
       await refreshDetail(detail.session.id)
     } catch (error) {
@@ -287,8 +300,29 @@ export default function Orders() {
   }
 
   const handlePayerChange = async (payerId) => {
+    // Selalu ingat pilihan terakhir; bila anak sudah punya baris,
+    // terapkan juga ke baris-baris yang ada.
+    setPayerDraft(prev => ({ ...prev, [selectedChildId]: payerId }))
+    if (!selectedGroup) return
     try {
       await orderService.setPayerForChild(detail.session.id, selectedChildId, payerId)
+      await refreshDetail(detail.session.id)
+    } catch (error) {
+      console.error(error)
+      showToast(t('orders.save_fail'), 'error')
+    }
+  }
+
+  // Cicil untuk satu anak tertentu (mis. "Dulloh baru bayar 5000"):
+  // hanya saldo anak itu yang berkurang, bukan tunggakan tertua pembayar.
+  const handleRecordChildPayment = async (payerId, childId) => {
+    const key = `${payerId}:${childId}`
+    const amount = parseNumberInput(childPayInputs[key])
+    if (!amount) return
+    try {
+      await orderService.recordChildPayment(detail.session.id, childId, amount)
+      setChildPayInputs(prev => ({ ...prev, [key]: '' }))
+      showToast(t('orders.payment_saved'), 'success')
       await refreshDetail(detail.session.id)
     } catch (error) {
       console.error(error)
@@ -366,7 +400,7 @@ export default function Orders() {
     try {
       const p = await orderService.addPerson(personForm)
       setPeople(prev => [...prev, p].sort((a, b) => a.nama.localeCompare(b.nama)))
-      setPersonForm({ nama: '', catatan: '' })
+      setPersonForm({ nama: '', catatan: '', peran: 'keduanya' })
       showToast(t('orders.saved'), 'success')
     } catch (error) {
       console.error(error)
@@ -376,8 +410,8 @@ export default function Orders() {
 
   const handleSavePerson = async () => {
     try {
-      await orderService.updatePerson(editPerson.id, { nama: editPerson.nama.trim(), catatan: editPerson.catatan?.trim() || null })
-      setPeople(prev => prev.map(p => p.id === editPerson.id ? { ...p, nama: editPerson.nama, catatan: editPerson.catatan || null } : p))
+      await orderService.updatePerson(editPerson.id, { nama: editPerson.nama.trim(), catatan: editPerson.catatan?.trim() || null, peran: editPerson.peran || 'keduanya' })
+      setPeople(prev => prev.map(p => p.id === editPerson.id ? { ...p, nama: editPerson.nama, catatan: editPerson.catatan || null, peran: editPerson.peran || 'keduanya' } : p))
       setEditPerson(null)
       showToast(t('orders.saved'), 'success')
     } catch (error) {
@@ -712,7 +746,7 @@ export default function Orders() {
 
                 {/* Daftar Chip Anak (Swipeable di HP) */}
                 <div className="flex gap-2 overflow-x-auto pb-1 pt-0.5 scrollbar-thin">
-                  {people.filter(p => p.aktif || childGroups.some(g => g.childId === p.id)).map(p => {
+                  {people.filter(p => (p.aktif || childGroups.some(g => g.childId === p.id)) && isChildRole(p)).map(p => {
                     const isSelected = selectedChildId === p.id
                     const hasLines = childGroups.some(g => g.childId === p.id)
                     return (
@@ -757,12 +791,12 @@ export default function Orders() {
                     <div className="flex items-center gap-2 bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-200 self-start sm:self-auto">
                       <span className="text-xs text-slate-500 font-medium shrink-0">{t('orders.paid_by')}:</span>
                       <select
-                        value={selectedPayerId}
+                        value={effectivePayerId}
                         onChange={(e) => handlePayerChange(e.target.value)}
                         disabled={closed}
                         className="bg-transparent text-xs font-bold text-slate-700 focus:outline-none cursor-pointer max-w-[160px] truncate"
                       >
-                        {people.filter(p => p.aktif || p.id === selectedPayerId).map(p => (
+                        {people.filter(p => (p.aktif || p.id === effectivePayerId) && (isPayerRole(p) || p.id === selectedChildId)).map(p => (
                           <option key={p.id} value={p.id}>{p.nama}{p.id === selectedChildId ? ` (${t('orders.self')})` : ''}</option>
                         ))}
                       </select>
@@ -1029,7 +1063,7 @@ export default function Orders() {
                       {g.children.map(child => {
                         const childGroup = childGroups.find(cg => cg.childId === child.childId)
                         return (
-                          <div key={child.childId} className="p-2.5 bg-slate-50/70 rounded-xl border border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                          <div key={child.childId} className="p-2.5 bg-slate-50/70 rounded-xl border border-slate-100 space-y-2">
                             <div className="flex items-center gap-2 min-w-0 flex-1">
                               <button
                                 onClick={() => handleToggleChildPaid(null, child, child.status !== 'Lunas')}
@@ -1063,6 +1097,26 @@ export default function Orders() {
                                 <i className="fa-solid fa-box-open mr-1"></i>{t('orders.delivered')}
                               </button>
                             </div>
+                            {!closed && child.status !== 'Lunas' && (
+                              <div className="flex gap-2 pt-1 border-t border-slate-200/50">
+                                <div className="relative flex-1">
+                                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-slate-400 font-semibold">Rp</span>
+                                  <input
+                                    value={childPayInputs[`${g.payerId}:${child.childId}`] || ''}
+                                    onChange={(e) => setChildPayInputs(prev => ({ ...prev, [`${g.payerId}:${child.childId}`]: formatNumberInput(e.target.value) }))}
+                                    placeholder={t('orders.child_payment_ph')}
+                                    inputMode="numeric"
+                                    className="w-full border border-slate-200 rounded-xl pl-9 pr-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-savora-orange/40 bg-white"
+                                  />
+                                </div>
+                                <button
+                                  onClick={() => handleRecordChildPayment(g.payerId, child.childId)}
+                                  className="px-3 py-1.5 bg-slate-800 text-white rounded-xl text-xs font-semibold active:scale-95 transition shrink-0"
+                                >
+                                  {t('orders.record')}
+                                </button>
+                              </div>
+                            )}
                           </div>
                         )
                       })}
@@ -1171,7 +1225,7 @@ export default function Orders() {
               {/* Form Tambah Orang (Responsive Grid Bebas Terpotong) */}
               <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-3.5 sm:p-4">
                 <div className="grid grid-cols-1 sm:grid-cols-12 gap-2">
-                  <div className="sm:col-span-6">
+                  <div className="sm:col-span-4">
                     <input
                       value={personForm.nama}
                       onChange={(e) => setPersonForm({ ...personForm, nama: e.target.value })}
@@ -1179,13 +1233,24 @@ export default function Orders() {
                       className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-savora-orange/40 bg-white"
                     />
                   </div>
-                  <div className="sm:col-span-4">
+                  <div className="sm:col-span-3">
                     <input
                       value={personForm.catatan}
                       onChange={(e) => setPersonForm({ ...personForm, catatan: e.target.value })}
                       placeholder={t('orders.person_note_ph')}
                       className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-savora-orange/40 bg-white"
                     />
+                  </div>
+                  <div className="sm:col-span-3">
+                    <select
+                      value={personForm.peran}
+                      onChange={(e) => setPersonForm({ ...personForm, peran: e.target.value })}
+                      className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-savora-orange/40 bg-white"
+                    >
+                      <option value="santri">{t('orders.role_santri')}</option>
+                      <option value="pembayar">{t('orders.role_payer')}</option>
+                      <option value="keduanya">{t('orders.role_both')}</option>
+                    </select>
                   </div>
                   <div className="sm:col-span-2">
                     <button
@@ -1219,6 +1284,15 @@ export default function Orders() {
                             placeholder={t('orders.person_note_ph')}
                             className="w-28 sm:w-36 border border-slate-200 rounded-xl px-3 py-1.5 text-xs sm:text-sm bg-white"
                           />
+                          <select
+                            value={editPerson.peran || 'keduanya'}
+                            onChange={(e) => setEditPerson({ ...editPerson, peran: e.target.value })}
+                            className="border border-slate-200 rounded-xl px-2 py-1.5 text-xs sm:text-sm bg-white"
+                          >
+                            <option value="santri">{t('orders.role_santri')}</option>
+                            <option value="pembayar">{t('orders.role_payer')}</option>
+                            <option value="keduanya">{t('orders.role_both')}</option>
+                          </select>
                         </div>
                         <div className="flex items-center justify-end gap-2">
                           <button onClick={handleSavePerson} className="px-3 py-1.5 bg-emerald-600 text-white rounded-xl text-xs font-semibold flex items-center gap-1 active:scale-95 shadow-sm">
@@ -1233,11 +1307,16 @@ export default function Orders() {
                       <>
                         <div className="flex-1 min-w-0">
                           <span className={`text-xs sm:text-sm font-semibold ${p.aktif ? 'text-slate-800' : 'text-slate-400 line-through'}`}>{p.nama}</span>
+                          <span className={`text-[10px] font-bold ml-2 px-1.5 py-0.5 rounded-md ${
+                            roleOf(p) === 'santri' ? 'bg-sky-100 text-sky-700'
+                            : roleOf(p) === 'pembayar' ? 'bg-violet-100 text-violet-700'
+                            : 'bg-slate-100 text-slate-600'
+                          }`}>{t(roleOf(p) === 'pembayar' ? 'orders.role_payer' : roleOf(p) === 'santri' ? 'orders.role_santri' : 'orders.role_both')}</span>
                           {p.catatan && <span className="text-[11px] text-slate-400 ml-2 bg-slate-100 px-1.5 py-0.5 rounded-md">({p.catatan})</span>}
                         </div>
                         <div className="flex items-center gap-1 shrink-0">
                           <button
-                            onClick={() => setEditPerson({ id: p.id, nama: p.nama, catatan: p.catatan || '' })}
+                            onClick={() => setEditPerson({ id: p.id, nama: p.nama, catatan: p.catatan || '', peran: p.peran || 'keduanya' })}
                             className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition"
                             title="Edit"
                           >
