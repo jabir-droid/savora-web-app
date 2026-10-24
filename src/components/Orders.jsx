@@ -714,10 +714,10 @@ export default function Orders() {
                   {!closed && (
                     <button
                       onClick={() => setShowAddChild(!showAddChild)}
-                      className="text-xs font-semibold text-savora-orange hover:text-savora-orangeHover flex items-center gap-1 active:scale-95 transition"
+                      className="text-xs font-semibold text-savora-orange hover:text-savora-orangeHover flex items-center gap-1.5 active:scale-95 transition"
                     >
                       <i className={`fa-solid ${showAddChild ? 'fa-xmark' : 'fa-plus'} text-[11px]`}></i>
-                      <span>{showAddChild ? 'Batal' : '+ Anak Baru'}</span>
+                      <span>{showAddChild ? 'Batal' : 'Anak Baru'}</span>
                     </button>
                   )}
                 </div>
@@ -959,9 +959,16 @@ export default function Orders() {
               )}
 
               {!selectedChildId && (
-                <div className="bg-white rounded-2xl border border-dashed border-slate-300 p-8 text-center text-slate-400 text-sm">
-                  <i className="fa-solid fa-hand-pointer text-2xl text-slate-300 block mb-2"></i>
-                  {t('orders.pick_child_first')}
+                <div className="bg-white rounded-2xl border border-dashed border-slate-300 p-8 text-center text-slate-400 text-sm flex flex-col items-center justify-center gap-3">
+                  <div className="w-12 h-12 rounded-2xl bg-orange-50 text-savora-orange flex items-center justify-center text-xl shadow-sm">
+                    <i className="fa-solid fa-arrow-up"></i>
+                  </div>
+                  <div className="max-w-xs">
+                    <p className="font-semibold text-slate-700 text-sm">Belum Ada Anak Dipilih</p>
+                    <p className="text-xs text-slate-400 mt-1 leading-relaxed">
+                      {t('orders.pick_child_first')}
+                    </p>
+                  </div>
                 </div>
               )}
             </div>
